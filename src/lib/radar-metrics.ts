@@ -39,6 +39,13 @@ export const RADAR_METRICS: Record<string, RadarMetric[]> = {
   ],
 };
 
+const RADAR_BENCHMARKS: Record<string, Record<string, number>> = {
+  goalkeeper: { saves: 120, goalsConceded: 55, cleanSheets: 18, passAccuracy: 95, aerialsWon: 90, rating: 8.5 },
+  defender: { tackles: 120, interceptions: 95, clearances: 170, aerialsWon: 150, passAccuracy: 95, duelsWon: 220 },
+  midfielder: { keyPasses: 90, passAccuracy: 95, dribbles: 90, tackles: 110, goals: 18, assists: 18 },
+  attacker: { goals: 35, assists: 20, dribbles: 120, shotsOnTarget: 90, xg: 28, keyPasses: 80 },
+};
+
 export function getRadarMetrics(positionCode: string): RadarMetric[] {
   switch (positionCode) {
     case "goalkeeper":
@@ -62,4 +69,11 @@ export function getStatValue(
     if (statIds.includes(stat.stat_type_id)) return stat.value;
   }
   return 0;
+}
+
+export function getRadarPercentile(positionCode: string, metricKey: string, value: number): number {
+  const benchmarks = RADAR_BENCHMARKS[positionCode] || RADAR_BENCHMARKS.midfielder;
+  const benchmark = benchmarks[metricKey] || 100;
+  const raw = Math.round((value / benchmark) * 100);
+  return Math.max(0, Math.min(raw, 100));
 }

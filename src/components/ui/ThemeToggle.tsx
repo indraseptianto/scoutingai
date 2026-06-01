@@ -9,7 +9,7 @@ function applyTheme(mode: "light" | "dark" | "system") {
 }
 
 export function ThemeToggle() {
-  const { mode, toggleMode } = useThemeStore();
+  const { mode, setMode } = useThemeStore();
 
   useEffect(() => {
     applyTheme(mode);
@@ -20,14 +20,20 @@ export function ThemeToggle() {
   }, [mode]);
 
   return (
-    <button
-      onClick={toggleMode}
-      className="rounded-full h-8 min-w-8 px-2 flex items-center justify-center text-xs font-semibold transition-colors hover:bg-black/5 dark:hover:bg-white/10"
-      aria-label="Toggle dark mode"
-      title={`Theme: ${mode}`}
-      style={{ color: "var(--color-text-muted)" }}
-    >
-      {mode === "dark" ? "Dark" : "Light"}
-    </button>
+    <div className="flex rounded-full border p-0.5" style={{ borderColor: "var(--color-border)" }} aria-label="Theme mode">
+      {(["light", "dark", "system"] as const).map((item) => (
+        <button
+          key={item}
+          onClick={() => setMode(item)}
+          className="rounded-full px-2 py-1 text-[10px] font-semibold capitalize transition-colors"
+          style={{
+            background: mode === item ? "var(--color-primary-dark)" : "transparent",
+            color: mode === item ? "white" : "var(--color-text-muted)",
+          }}
+        >
+          {item}
+        </button>
+      ))}
+    </div>
   );
 }

@@ -54,6 +54,7 @@ function SearchContent() {
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "rating");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const hasMountedRef = useRef(false);
 
   const buildFilterParams = useCallback(() => {
     const params = new URLSearchParams();
@@ -145,6 +146,19 @@ function SearchContent() {
     observer.observe(target);
     return () => observer.disconnect();
   }, [handleLoadMore, hasMore, loading, players.length]);
+
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+    if (!query.trim()) return;
+    const timer = window.setTimeout(() => {
+      setPage(1);
+      fetchPlayers(1, true);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [ageRange, fetchPlayers, query, selectedDetailedPositions, selectedLeagues, selectedPosition, sortBy]);
 
   const toggleLeague = (league: string) => {
     setSelectedLeagues((prev) =>

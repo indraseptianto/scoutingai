@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { getRadarMetrics, getStatValue } from "@/lib/radar-metrics";
+import { getRadarMetrics, getRadarPercentile, getStatValue } from "@/lib/radar-metrics";
 
 interface PlayerRadarChartProps {
   statistics: { stat_type_id: number; value: number }[];
@@ -29,7 +29,7 @@ export function PlayerRadarChart({
   const metrics = getRadarMetrics(positionCode);
 
   const data = metrics.map((metric) => {
-    const p1 = getStatValue(statistics, metric.statIds);
+    const p1 = getRadarPercentile(positionCode, metric.key, getStatValue(statistics, metric.statIds));
     const p2 = compareStatistics
       ? getStatValue(compareStatistics, metric.statIds)
       : 0;
@@ -37,23 +37,7 @@ export function PlayerRadarChart({
     const obj: Record<string, string | number> = { metric: metric.label };
     obj[playerName] = p1;
     if (compareStatistics) {
-      obj[compareName || "Player 2"] = p2;
-    }
-    return obj;
-  });
-
-  // Normalize
-  const allValues = data.flatMap((d) =>
-    Object.values(d).filter((v): v is number => typeof v === "number")
-  );
-  const maxVal = Math.max(...allValues, 1);
-
-  const normalizedData = data.map((d) => {
-    const obj: Record<string, string | number> = { metric: d.metric };
-    for (const key of Object.keys(d)) {
-      if (key !== "metric") {
-        obj[key] = Math.round((d[key] as number / maxVal) * 100);
-      }
+      obj[compareName || "Player 2"] = getRadarPercentile(positionCode, metric.key, p2);
     }
     return obj;
   });
@@ -61,7 +45,7 @@ export function PlayerRadarChart({
   return (
     <div className="w-full h-full min-h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
-        <RechartsRadar data={normalizedData} cx="50%" cy="50%" outerRadius="70%">
+        <RechartsRadar data={data} cx="50%" cy="50%" outerRadius="70%">
           <PolarGrid stroke="var(--color-border)" />
           <PolarAngleAxis
             dataKey="metric"
