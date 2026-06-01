@@ -121,6 +121,13 @@ export default function ScoutBuilderPage() {
       params.set("age_max", String(ageRange[1]));
       if (league) params.set("league", league);
       params.set("season", season);
+      if (nationality) params.set("nationality", nationality);
+      params.set("goals_min", String(goalsMin));
+      params.set("assists_min", String(assistsMin));
+      params.set("pass_min", String(passMin));
+      params.set("rating_min", String(ratingMin));
+      params.set("apps_min", String(appsMin));
+      params.set("tackles_min", String(tacklesMin));
 
       const res = await fetch(`/api/players?${params.toString()}`);
       const data = await res.json();

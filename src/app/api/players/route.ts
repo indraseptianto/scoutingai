@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { filterPlayers, parseFilterParams } from "@/lib/player-filters";
 
 const SPORTMONKS_BASE = "https://api.sportmonks.com/v3/football";
 const API_TOKEN = process.env.SPORTMONKS_API_TOKEN || process.env.NEXT_PUBLIC_SPORTMONKS_API_TOKEN || "";
@@ -9,7 +10,7 @@ export async function GET(req: Request) {
 
   const url = new URL(`${SPORTMONKS_BASE}/players`);
   url.searchParams.set("api_token", API_TOKEN);
-  url.searchParams.set("include", "position;detailedPosition;nationality;teams");
+  url.searchParams.set("include", "position;detailedPosition;nationality;teams;statistics;statistics.details");
   url.searchParams.set("page", page);
 
   const res = await fetch(url.toString(), { next: { revalidate: 600 } });
@@ -19,5 +20,7 @@ export async function GET(req: Request) {
       { status: res.status }
     );
   }
-  return NextResponse.json(await res.json());
+  const data = await res.json();
+  data.data = filterPlayers(data.data || [], parseFilterParams(searchParams));
+  return NextResponse.json(data);
 }

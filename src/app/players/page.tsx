@@ -77,7 +77,9 @@ function SearchContent() {
       if (!query.trim()) return;
       setLoading(true);
       try {
-        const res = await fetch(`/api/players/search?query=${encodeURIComponent(query)}&page=${p}`);
+        const params = buildFilterParams();
+        params.set("page", String(p));
+        const res = await fetch(`/api/players/search?${params.toString()}`);
         const data = await res.json();
         const newPlayers = data.data || [];
         setPlayers((prev) => (reset ? newPlayers : [...prev, ...newPlayers]));
@@ -87,7 +89,7 @@ function SearchContent() {
       }
       setLoading(false);
     },
-    [query]
+    [buildFilterParams, query]
   );
 
   useEffect(() => {
@@ -96,9 +98,9 @@ function SearchContent() {
     async function fetchData() {
       setLoading(true);
       try {
-        const res = await fetch(
-          `/api/players/search?query=${encodeURIComponent(initialQuery)}&page=1`
-        );
+        const params = buildFilterParams();
+        params.set("page", "1");
+        const res = await fetch(`/api/players/search?${params.toString()}`);
         const data = await res.json();
         if (!cancelled) {
           setPlayers(data.data || []);
@@ -111,7 +113,7 @@ function SearchContent() {
     }
     fetchData();
     return () => { cancelled = true; };
-  }, [initialQuery]);
+  }, [buildFilterParams, initialQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,6 +156,12 @@ function SearchContent() {
     setSelectedDetailedPositions((prev) =>
       prev.includes(pos) ? prev.filter((p) => p !== pos) : [...prev, pos]
     );
+  };
+
+  const handleApplyFilters = () => {
+    setPage(1);
+    fetchPlayers(1, true);
+    setFiltersOpen(false);
   };
 
   const activeFilters: string[] = [];
@@ -339,6 +347,13 @@ function SearchContent() {
               </label>
             ))}
           </div>
+          <button
+            onClick={handleApplyFilters}
+            className="w-full rounded-full py-2 text-xs font-semibold"
+            style={{ background: "var(--color-primary-dark)", color: "white" }}
+          >
+            Apply Filters
+          </button>
         </div>
 
         {filtersOpen && (
@@ -425,6 +440,13 @@ function SearchContent() {
                   </label>
                 ))}
               </div>
+              <button
+                onClick={handleApplyFilters}
+                className="mt-4 w-full rounded-full py-2.5 text-xs font-semibold"
+                style={{ background: "var(--color-primary-dark)", color: "white" }}
+              >
+                Apply Filters
+              </button>
             </div>
           </div>
         )}

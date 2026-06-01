@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { filterPlayers, parseFilterParams } from "@/lib/player-filters";
 
 const SPORTMONKS_BASE = "https://api.sportmonks.com/v3/football";
 const API_TOKEN = process.env.SPORTMONKS_API_TOKEN || process.env.NEXT_PUBLIC_SPORTMONKS_API_TOKEN || "";
 
-async function sportmonksFetch(endpoint: string) {
+async function sportmonksFetch(endpoint: string, filters?: URLSearchParams) {
   const url = new URL(`${SPORTMONKS_BASE}${endpoint}`);
   url.searchParams.set("api_token", API_TOKEN);
 
@@ -12,7 +13,12 @@ async function sportmonksFetch(endpoint: string) {
     const errorText = await res.text();
     return NextResponse.json({ error: errorText }, { status: res.status });
   }
-  return NextResponse.json(await res.json());
+  const data = await res.json();
+  if (filters) {
+    const parsedFilters = parseFilterParams(filters);
+    data.data = filterPlayers(data.data || [], parsedFilters);
+  }
+  return NextResponse.json(data);
 }
 
 export async function GET(req: Request) {
@@ -21,6 +27,7 @@ export async function GET(req: Request) {
   const page = searchParams.get("page") || "1";
 
   return sportmonksFetch(
-    `/players/search/${encodeURIComponent(query)}?include=position;detailedPosition;nationality;teams&page=${page}`
+    `/players/search/${encodeURIComponent(query)}?include=position;detailedPosition;nationality;teams;statistics;statistics.details&page=${page}`,
+    searchParams
   );
 }

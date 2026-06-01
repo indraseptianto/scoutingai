@@ -15,6 +15,7 @@ export interface ComparePlayer {
 interface CompareStore {
   players: ComparePlayer[];
   addPlayer: (player: ComparePlayer) => void;
+  setPlayers: (players: ComparePlayer[]) => void;
   removePlayer: (id: number) => void;
   clearAll: () => void;
 }
@@ -28,6 +29,10 @@ export const useCompareStore = create<CompareStore>()((set) => ({
       if (state.players.some((p) => p.id === player.id)) return state;
       return { players: [...state.players, player] };
     });
+  },
+
+  setPlayers: (players) => {
+    set({ players });
   },
 
   removePlayer: (id) => {

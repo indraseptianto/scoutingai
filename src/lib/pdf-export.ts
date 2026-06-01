@@ -1,4 +1,5 @@
 import type { Shortlist } from "@/lib/shortlist-store";
+import type { ComparePlayer } from "@/lib/compare-store";
 
 type ReportPlayer = {
   id: number;
@@ -116,4 +117,39 @@ export function exportShortlistReport(shortlist: Shortlist) {
     </table>
     <div class="footer">Use browser Save as PDF to download this print-ready report.</div>`;
   openPrintReport(`${shortlist.name} shortlist report`, body);
+}
+
+export function exportCompareReport(
+  players: ComparePlayer[],
+  stats: { label: string; statIds: number[] }[],
+  season: string
+) {
+  const getStat = (player: ComparePlayer, statIds: number[]) => {
+    const stat = player.statistics.find((item) => statIds.includes(item.stat_type_id));
+    return stat?.value ?? "-";
+  };
+  const headerCells = players.map((player) => `<th>${escapeHtml(player.display_name)}</th>`).join("");
+  const rows = stats.map((stat) => {
+    const values = players.map((player) => getStat(player, stat.statIds));
+    const numericValues = values.filter((value): value is number => typeof value === "number");
+    const max = Math.max(...numericValues, 0);
+    return `<tr><th>${escapeHtml(stat.label)}</th>${values.map((value) => {
+      const winner = typeof value === "number" && value === max && max > 0;
+      return `<td style="${winner ? "color:#16A34A;font-weight:800;background:#F0FFF4;" : ""}">${escapeHtml(value)}</td>`;
+    }).join("")}</tr>`;
+  }).join("");
+
+  const body = `
+    <section class="header">
+      <div class="eyebrow">ScoutVision Compare Report</div>
+      <h1>Player Comparison</h1>
+      <div class="muted">Season ${escapeHtml(season)} · ${players.length} players · Generated ${new Date().toLocaleDateString()}</div>
+    </section>
+    <h2>Compared Players</h2>
+    <table>
+      <thead><tr><th>Stat</th>${headerCells}</tr></thead>
+      <tbody>${rows || `<tr><td colspan="${players.length + 1}">No players selected.</td></tr>`}</tbody>
+    </table>
+    <div class="footer">Green cells mark the highest value in each row. Use browser Save as PDF to download this print-ready report.</div>`;
+  openPrintReport("ScoutVision compare report", body);
 }

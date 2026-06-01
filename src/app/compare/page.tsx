@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Plus } from "lucide-react";
 import { BentoGrid } from "@/components/bento/BentoGrid";
 import { BentoCell } from "@/components/bento/BentoCell";
 import { SeasonSelector } from "@/components/ui/SeasonSelector";
-import { useCompareStore } from "@/lib/compare-store";
+import { useCompareStore, type ComparePlayer } from "@/lib/compare-store";
+import { exportCompareReport } from "@/lib/pdf-export";
 
 const COMPARE_STATS = [
   { label: "Goals", statIds: [52] },
@@ -30,8 +31,25 @@ function getStatVal(
   return 0;
 }
 
+function normalizeComparePlayer(raw: Record<string, unknown>): ComparePlayer {
+  return {
+    id: Number(raw.id),
+    display_name: String(raw.display_name || raw.common_name || "Unknown"),
+    image_path: String(raw.image_path || ""),
+    position: (raw.position as ComparePlayer["position"]) || { name: "Unknown", code: "midfielder" },
+    detailed_position: (raw.detailed_position as ComparePlayer["detailed_position"]) || { name: "" },
+    nationality: (raw.nationality as ComparePlayer["nationality"]) || { name: "", image_path: "" },
+    date_of_birth: String(raw.date_of_birth || ""),
+    teams: (raw.teams as ComparePlayer["teams"]) || [],
+    statistics: ((raw.statistics as Record<string, unknown>[] | undefined) || []).map((s) => ({
+      stat_type_id: Number(s.type_id || s.stat_type_id),
+      value: Number(s.value),
+    })),
+  };
+}
+
 export default function ComparePage() {
-  const { players, removePlayer } = useCompareStore();
+  const { players, removePlayer, setPlayers } = useCompareStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [season, setSeason] = useState("2024/25");
   const [loading, setLoading] = useState(false);
@@ -44,23 +62,10 @@ export default function ComparePage() {
       const data = await res.json();
       const found = data.data?.[0];
       if (found) {
-        const detailRes = await fetch(`/api/players/${found.id}`);
+        const detailRes = await fetch(`/api/players/${found.id}?season=${encodeURIComponent(season)}`);
         const detailData = await detailRes.json();
         const p = detailData.data || detailData;
-        useCompareStore.getState().addPlayer({
-          id: Number(p.id),
-          display_name: String(p.display_name || p.common_name),
-          image_path: String(p.image_path || ""),
-          position: p.position || { name: "Unknown", code: "midfielder" },
-          detailed_position: p.detailed_position || { name: "" },
-          nationality: p.nationality,
-          date_of_birth: String(p.date_of_birth || ""),
-          teams: p.teams || [],
-          statistics: (p.statistics || []).map((s: Record<string, unknown>) => ({
-            stat_type_id: Number(s.type_id || s.stat_type_id),
-            value: Number(s.value),
-          })),
-        });
+        useCompareStore.getState().addPlayer(normalizeComparePlayer(p));
       }
     } catch (err) {
       console.error(err);
@@ -68,6 +73,30 @@ export default function ComparePage() {
     setSearchQuery("");
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (!players.length) return;
+    let cancelled = false;
+    async function refreshPlayersForSeason() {
+      setLoading(true);
+      try {
+        const refreshed = await Promise.all(
+          players.map(async (player) => {
+            const res = await fetch(`/api/players/${player.id}?season=${encodeURIComponent(season)}`);
+            const data = await res.json();
+            return normalizeComparePlayer(data.data || data);
+          })
+        );
+        if (!cancelled) setPlayers(refreshed);
+      } catch (err) {
+        console.error(err);
+      }
+      if (!cancelled) setLoading(false);
+    }
+    refreshPlayersForSeason();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [season]);
 
   return (
     <div className="py-6 px-6">
@@ -86,6 +115,15 @@ export default function ComparePage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              {players.length > 0 && (
+                <button
+                  onClick={() => exportCompareReport(players, COMPARE_STATS, season)}
+                  className="rounded-full px-3 py-1.5 text-sm font-medium transition-colors"
+                  style={{ background: "var(--color-secondary)", color: "white" }}
+                >
+                  Export PDF
+                </button>
+              )}
               <SeasonSelector
                 seasons={["2024/25", "2023/24", "2022/23"]}
                 current={season}
