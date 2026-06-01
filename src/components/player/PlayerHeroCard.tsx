@@ -101,7 +101,13 @@ export function PlayerHeroCard({ player }: PlayerHeroCardProps) {
           </div>
 
           <div className="mt-4 flex items-center gap-3">
-            <ShortlistButton playerId={player.id} />
+            <ShortlistButton
+              playerId={player.id}
+              playerName={player.display_name || player.common_name || "Unknown"}
+              playerImage={imageUrl}
+              playerPosition={player.detailed_position?.name || player.position.name}
+              playerTeam={team?.name || ""}
+            />
             <button className="rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium hover:bg-white/20 transition-colors">
               Share
             </button>

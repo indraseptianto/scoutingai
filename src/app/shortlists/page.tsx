@@ -6,6 +6,7 @@ import Link from "next/link";
 import { BentoGrid } from "@/components/bento/BentoGrid";
 import { BentoCell } from "@/components/bento/BentoCell";
 import { useShortlistStore } from "@/lib/shortlist-store";
+import { TagBadge } from "@/components/ui/TagBadge";
 
 const PRIORITY_COLORS = {
   High: { bg: "#FEE2E2", text: "#DC2626" },
@@ -14,8 +15,9 @@ const PRIORITY_COLORS = {
 };
 
 export default function ShortlistsPage() {
-  const { shortlists, addShortlist, removeShortlist } = useShortlistStore();
+  const { shortlists, addShortlist, removeShortlist, updatePlayerTags } = useShortlistStore();
   const [searchPlayer, setSearchPlayer] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const router = useRouter();
 
   const handleQuickAdd = (e: React.FormEvent) => {
@@ -52,92 +54,146 @@ export default function ShortlistsPage() {
 
         {shortlists.map((sl) => (
           <BentoCell key={sl.id} size="1x2">
-            <Link href={`/shortlists?id=${sl.id}`} className="block h-full">
-              <div className="flex flex-col h-full">
-                <div className="flex items-start justify-between mb-3">
-                  <h3
-                    className="text-lg font-semibold"
-                    style={{ color: "var(--color-text)" }}
-                  >
-                    {sl.name}
-                  </h3>
-                  <span
-                    className="rounded-full px-2 py-0.5 text-xs font-medium"
-                    style={{
-                      backgroundColor: PRIORITY_COLORS[sl.priority].bg,
-                      color: PRIORITY_COLORS[sl.priority].text,
-                    }}
-                  >
-                    {sl.priority}
-                  </span>
-                </div>
-
-                <p className="text-sm mb-4" style={{ color: "var(--color-text-muted)" }}>
-                  {sl.players.length} players · {sl.description || sl.priority + " priority"}
-                </p>
-
-                {sl.players.length > 0 && (
-                  <div className="flex -space-x-2 mb-4">
-                    {sl.players.slice(0, 4).map((p, i) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        key={i}
-                        src={p.playerImage || "/placeholder.svg"}
-                        alt={p.playerName}
-                        width={36}
-                        height={36}
-                        className="rounded-full border-2 object-cover"
-                        style={{
-                          borderColor: "var(--color-surface)",
-                          width: 36,
-                          height: 36,
-                        }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/placeholder.svg";
-                        }}
-                      />
-                    ))}
-                    {sl.players.length > 4 && (
-                      <div
-                        className="rounded-full border-2 flex items-center justify-center text-xs font-medium"
-                        style={{
-                          width: 36,
-                          height: 36,
-                          background: "var(--color-surface-2)",
-                          borderColor: "var(--color-surface)",
-                          color: "var(--color-text-muted)",
-                        }}
-                      >
-                        +{sl.players.length - 4}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="mt-auto flex items-center justify-between">
-                  <span
-                    className="text-sm font-medium"
-                    style={{ color: "var(--color-primary-dark)" }}
-                  >
-                    Open →
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      removeShortlist(sl.id);
-                    }}
-                    className="rounded-full px-2 py-0.5 text-xs"
-                    style={{
-                      background: "var(--color-surface-2)",
-                      color: "var(--color-text-dim)",
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
+            <div className="flex flex-col h-full">
+              <div className="flex items-start justify-between mb-2">
+                <h3
+                  className="text-lg font-semibold"
+                  style={{ color: "var(--color-text)" }}
+                >
+                  {sl.name}
+                </h3>
+                <span
+                  className="rounded-full px-2 py-0.5 text-xs font-medium"
+                  style={{
+                    backgroundColor: PRIORITY_COLORS[sl.priority].bg,
+                    color: PRIORITY_COLORS[sl.priority].text,
+                  }}
+                >
+                  {sl.priority}
+                </span>
               </div>
-            </Link>
+
+              <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}>
+                {sl.players.length} players · {sl.description || sl.priority + " priority"}
+              </p>
+
+              {sl.players.length > 0 && (
+                <div className="flex -space-x-2 mb-3">
+                  {sl.players.slice(0, 4).map((p, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={i}
+                      src={p.playerImage || "/placeholder.svg"}
+                      alt={p.playerName}
+                      width={36}
+                      height={36}
+                      className="rounded-full border-2 object-cover"
+                      style={{
+                        borderColor: "var(--color-surface)",
+                        width: 36,
+                        height: 36,
+                      }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/placeholder.svg";
+                      }}
+                    />
+                  ))}
+                  {sl.players.length > 4 && (
+                    <div
+                      className="rounded-full border-2 flex items-center justify-center text-xs font-medium"
+                      style={{
+                        width: 36,
+                        height: 36,
+                        background: "var(--color-surface-2)",
+                        borderColor: "var(--color-surface)",
+                        color: "var(--color-text-muted)",
+                      }}
+                    >
+                      +{sl.players.length - 4}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <button
+                onClick={() => setExpandedId(expandedId === sl.id ? null : sl.id)}
+                className="text-xs font-medium mb-2 self-start"
+                style={{ color: "var(--color-primary-dark)" }}
+              >
+                {expandedId === sl.id ? "Hide players ↑" : "View players →"}
+              </button>
+
+              {expandedId === sl.id && (
+                <div className="space-y-2 mb-3 max-h-48 overflow-y-auto">
+                  {sl.players.map((p) => (
+                    <div
+                      key={p.playerId}
+                      className="rounded-lg border p-2"
+                      style={{ borderColor: "var(--color-border)" }}
+                    >
+                      <Link
+                        href={`/players/${p.playerId}`}
+                        className="flex items-center gap-2 text-sm font-medium mb-1"
+                        style={{ color: "var(--color-text)" }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={p.playerImage || "/placeholder.svg"}
+                          alt={p.playerName}
+                          width={28}
+                          height={28}
+                          className="rounded-full object-cover"
+                          style={{ width: 28, height: 28 }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/placeholder.svg";
+                          }}
+                        />
+                        <span className="truncate flex-1">{p.playerName || `Player #${p.playerId}`}</span>
+                      </Link>
+                      <p className="text-[10px] mb-1" style={{ color: "var(--color-text-muted)" }}>
+                        {p.playerPosition} · {p.playerTeam}
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {p.tags.map((tag) => (
+                          <TagBadge
+                            key={tag}
+                            tag={tag}
+                            size="sm"
+                            onRemove={() => {
+                              const newTags = p.tags.filter((t) => t !== tag);
+                              updatePlayerTags(sl.id, p.playerId, newTags);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-auto flex items-center justify-between">
+                <span
+                  className="text-sm font-medium"
+                  style={{ color: "var(--color-primary-dark)" }}
+                >
+                  Open →
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    removeShortlist(sl.id);
+                  }}
+                  className="rounded-full px-2 py-0.5 text-xs"
+                  style={{
+                    background: "var(--color-surface-2)",
+                    color: "var(--color-text-dim)",
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           </BentoCell>
         ))}
 

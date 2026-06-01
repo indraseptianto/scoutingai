@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { BentoGrid } from "@/components/bento/BentoGrid";
 import { BentoCell } from "@/components/bento/BentoCell";
@@ -10,8 +10,7 @@ import { PlayerStatsTable } from "@/components/player/PlayerStatsTable";
 import { PlayerRadarChart } from "@/components/player/PlayerRadarChart";
 import { SeasonSelector } from "@/components/ui/SeasonSelector";
 import { SkeletonCell } from "@/components/ui/SkeletonCell";
-
-const MOCK_SEASONS = ["2024/25", "2023/24", "2022/23"];
+import { SEASON_NAMES } from "@/lib/seasons";
 
 interface RawPlayerData {
   id: number;
@@ -37,25 +36,53 @@ export default function PlayerProfilePage() {
   const playerId = params.id as string;
   const [player, setPlayer] = useState<RawPlayerData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [seasonLoading, setSeasonLoading] = useState(false);
   const [error, setError] = useState("");
-  const [selectedSeason, setSelectedSeason] = useState("2024/25");
+  const [selectedSeason, setSelectedSeason] = useState(SEASON_NAMES[0]);
 
-  useEffect(() => {
-    async function fetchPlayer() {
-      setLoading(true);
+  const fetchPlayer = useCallback(
+    async (season: string, isSeasonChange = false) => {
+      if (isSeasonChange) setSeasonLoading(true);
       setError("");
       try {
-        const res = await fetch(`/api/players/${playerId}`);
+        const url = new URL(`/api/players/${playerId}`, window.location.origin);
+        if (season) url.searchParams.set("season", season);
+        const res = await fetch(url.toString());
         if (!res.ok) throw new Error("Failed to fetch player");
         const data = await res.json();
         setPlayer((data.data || data) as RawPlayerData);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load player data");
       }
-      setLoading(false);
+      if (isSeasonChange) setSeasonLoading(false);
+    },
+    [playerId]
+  );
+
+  // Initial fetch on mount only
+  useEffect(() => {
+    let cancelled = false;
+    async function init() {
+      try {
+        const res = await fetch(`/api/players/${playerId}?season=${encodeURIComponent(selectedSeason)}`);
+        if (!res.ok) throw new Error("Failed to fetch player");
+        const data = await res.json();
+        if (!cancelled) setPlayer((data.data || data) as RawPlayerData);
+      } catch (err: unknown) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load player data");
+      }
+      if (!cancelled) setLoading(false);
     }
-    fetchPlayer();
+    init();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerId]);
+
+  const handleSeasonChange = (season: string) => {
+    if (season === selectedSeason) return;
+    setSelectedSeason(season);
+    fetchPlayer(season, true);
+  };
 
   if (error) {
     return (
@@ -64,7 +91,7 @@ export default function PlayerProfilePage() {
           {error}
         </p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => fetchPlayer(selectedSeason)}
           className="rounded-full px-6 py-2 text-sm font-medium border transition-colors"
           style={{
             borderColor: "var(--color-border)",
@@ -109,9 +136,7 @@ export default function PlayerProfilePage() {
 
   const transfers = player.transfers || [];
   const joinTransfer = transfers.length > 0 ? transfers[transfers.length - 1] : null;
-  const joinYear = joinTransfer
-    ? new Date(joinTransfer.date).getFullYear()
-    : null;
+  const joinYear = joinTransfer ? new Date(joinTransfer.date).getFullYear() : null;
 
   return (
     <div className="py-6 px-6">
@@ -140,51 +165,67 @@ export default function PlayerProfilePage() {
         {/* Row 2 — Season Selector */}
         <BentoCell size="4x1" variant="ghost">
           <SeasonSelector
-            seasons={MOCK_SEASONS}
+            seasons={SEASON_NAMES}
             current={selectedSeason}
-            onChange={setSelectedSeason}
+            onChange={handleSeasonChange}
+            disabled={seasonLoading}
           />
         </BentoCell>
 
         {/* Row 3 — Radar + KPI cells */}
-        <BentoCell size="1x2">
-          <PlayerRadarChart
-            statistics={statMap}
-            positionCode={positionCode}
-            playerName={player.display_name || player.common_name || "Player"}
-          />
-        </BentoCell>
+        {seasonLoading ? (
+          <>
+            <SkeletonCell size="1x2" />
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonCell key={i} size="1x1" />
+            ))}
+          </>
+        ) : (
+          <>
+            <BentoCell size="1x2">
+              <PlayerRadarChart
+                statistics={statMap}
+                positionCode={positionCode}
+                playerName={player.display_name || player.common_name || "Player"}
+              />
+            </BentoCell>
 
-        <BentoCell size="1x1">
-          <PlayerKPICell label="Goals" value={getStatValue(52)} trend={3} subtitle="vs position avg" />
-        </BentoCell>
+            <BentoCell size="1x1">
+              <PlayerKPICell label="Goals" value={getStatValue(52)} trend={3} subtitle="vs position avg" />
+            </BentoCell>
 
-        <BentoCell size="1x1">
-          <PlayerKPICell label="Assists" value={getStatValue(79)} trend={0} subtitle="vs position avg" />
-        </BentoCell>
+            <BentoCell size="1x1">
+              <PlayerKPICell label="Assists" value={getStatValue(79)} trend={0} subtitle="vs position avg" />
+            </BentoCell>
 
-        <BentoCell size="1x1">
-          <PlayerKPICell label="Rating" value={getStatValue(118)} format="rating" trend={0.2} subtitle="vs last season" />
-        </BentoCell>
+            <BentoCell size="1x1">
+              <PlayerKPICell label="Rating" value={getStatValue(118)} format="rating" trend={0.2} subtitle="vs last season" />
+            </BentoCell>
 
-        <BentoCell size="1x1">
-          <PlayerKPICell label="Pass Acc%" value={getStatValue(82)} format="percentage" trend={2} subtitle="vs position avg" />
-        </BentoCell>
+            <BentoCell size="1x1">
+              <PlayerKPICell label="Pass Acc%" value={getStatValue(82)} format="percentage" trend={2} subtitle="vs position avg" />
+            </BentoCell>
 
-        <BentoCell size="1x1">
-          <PlayerKPICell label="Minutes" value={getStatValue(119)} format="time" />
-        </BentoCell>
+            <BentoCell size="1x1">
+              <PlayerKPICell label="Minutes" value={getStatValue(119)} format="time" />
+            </BentoCell>
 
-        <BentoCell size="1x1">
-          <PlayerKPICell label="Apps" value={getStatValue(321)} />
-        </BentoCell>
+            <BentoCell size="1x1">
+              <PlayerKPICell label="Apps" value={getStatValue(321)} />
+            </BentoCell>
+          </>
+        )}
 
         {/* Row 4 — Statistics Deep Dive */}
-        <BentoCell size="4x2">
-          <PlayerStatsTable statistics={statMap} />
-        </BentoCell>
+        {seasonLoading ? (
+          <SkeletonCell size="4x2" />
+        ) : (
+          <BentoCell size="4x2">
+            <PlayerStatsTable statistics={statMap} />
+          </BentoCell>
+        )}
 
-        {/* Row 5 — Transfer History + Fixtures */}
+        {/* Row 5 — Transfer History + Trophies */}
         <BentoCell size="1x1">
           <div className="flex flex-col h-full">
             <h3 className="text-sm font-semibold mb-4 uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>

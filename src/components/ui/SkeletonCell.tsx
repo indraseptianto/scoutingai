@@ -1,5 +1,5 @@
 interface SkeletonCellProps {
-  size?: "1x1" | "1x2" | "2x1" | "2x2" | "3x1" | "4x1";
+  size?: "1x1" | "1x2" | "2x1" | "2x2" | "3x1" | "4x1" | "4x2";
 }
 
 export function SkeletonCell({ size = "1x1" }: SkeletonCellProps) {
