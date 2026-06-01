@@ -10,6 +10,7 @@ import { PlayerStatsTable } from "@/components/player/PlayerStatsTable";
 import { PlayerRadarChart } from "@/components/player/PlayerRadarChart";
 import { SeasonSelector } from "@/components/ui/SeasonSelector";
 import { SkeletonCell } from "@/components/ui/SkeletonCell";
+import { DataQualityNotice } from "@/components/ui/DataQualityNotice";
 import { SEASON_NAMES } from "@/lib/seasons";
 
 interface RawPlayerData {
@@ -167,12 +168,19 @@ export default function PlayerProfilePage() {
 
         {/* Row 2 — Season Selector */}
         <BentoCell size="4x1" variant="ghost">
-          <SeasonSelector
-            seasons={SEASON_NAMES}
-            current={selectedSeason}
-            onChange={handleSeasonChange}
-            disabled={seasonLoading}
-          />
+          <div className="space-y-3">
+            <SeasonSelector
+              seasons={SEASON_NAMES}
+              current={selectedSeason}
+              onChange={handleSeasonChange}
+              disabled={seasonLoading}
+            />
+            <DataQualityNotice
+              visible={statMap.length === 0}
+              message="Sportmonks returned no player statistics for this season."
+              details="This can happen when historical data is incomplete, the selected season ID does not match the player's league, or your API subscription does not include the requested stats."
+            />
+          </div>
         </BentoCell>
 
         {/* Row 3 — Radar + KPI cells */}

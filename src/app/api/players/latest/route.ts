@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizePlayers } from "@/lib/sportmonks-normalize";
 
 const SPORTMONKS_BASE = "https://api.sportmonks.com/v3/football";
 const API_TOKEN = process.env.SPORTMONKS_API_TOKEN || process.env.NEXT_PUBLIC_SPORTMONKS_API_TOKEN || "";
@@ -15,5 +16,7 @@ export async function GET() {
       { status: res.status }
     );
   }
-  return NextResponse.json(await res.json());
+  const data = await res.json();
+  data.data = normalizePlayers(data.data || []);
+  return NextResponse.json(data);
 }

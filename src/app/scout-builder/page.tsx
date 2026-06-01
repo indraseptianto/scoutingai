@@ -5,6 +5,7 @@ import { BentoGrid } from "@/components/bento/BentoGrid";
 import { BentoCell } from "@/components/bento/BentoCell";
 import { PlayerCard } from "@/components/player/PlayerCard";
 import { SkeletonCell } from "@/components/ui/SkeletonCell";
+import { DataQualityNotice } from "@/components/ui/DataQualityNotice";
 import { useQueryStore, type QueryPresetValues } from "@/lib/query-store";
 import { LEAGUE_OPTIONS } from "@/lib/seasons";
 
@@ -71,6 +72,7 @@ export default function ScoutBuilderPage() {
   const [loading, setLoading] = useState(false);
   const [resultCount, setResultCount] = useState(0);
   const [presetName, setPresetName] = useState("");
+  const [dataQuality, setDataQuality] = useState("");
 
   const getCurrentValues = (): QueryPresetValues => ({
     position,
@@ -135,6 +137,11 @@ export default function ScoutBuilderPage() {
       const players = data.data || [];
       setResults(players.slice(0, 6));
       setResultCount(players.length);
+      setDataQuality(
+        players.length === 0
+          ? "No players matched this query. Sportmonks coverage can vary by league, season, and statistic availability."
+          : ""
+      );
     } catch (err) {
       console.error(err);
     }
@@ -169,6 +176,7 @@ export default function ScoutBuilderPage() {
     setTacklesMin(30);
     setResults([]);
     setResultCount(0);
+    setDataQuality("");
   };
 
   return (
@@ -420,6 +428,14 @@ export default function ScoutBuilderPage() {
               </div>
             </div>
           )}
+
+          <div className="mb-4">
+            <DataQualityNotice
+              visible={!!dataQuality}
+              message={dataQuality}
+              details="Try lowering thresholds, selecting All Leagues, or choosing a season covered by your Sportmonks plan."
+            />
+          </div>
 
           {loading && (
             <div className="grid grid-cols-2 gap-3">

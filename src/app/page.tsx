@@ -1,17 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, Users, List, GitCompare, Zap, TrendingUp, ArrowRightLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { BentoGrid } from "@/components/bento/BentoGrid";
 import { BentoCell } from "@/components/bento/BentoCell";
 import { useShortlistStore } from "@/lib/shortlist-store";
+import { LEAGUE_OPTIONS } from "@/lib/seasons";
+
+type LatestPlayer = { id: number; display_name: string; position?: { name: string } };
 
 export default function Home() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [latestPlayers, setLatestPlayers] = useState<LatestPlayer[]>([]);
   const { shortlists } = useShortlistStore();
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadLatest() {
+      try {
+        const res = await fetch("/api/players/latest");
+        const data = await res.json();
+        if (!cancelled) setLatestPlayers((data.data || []).slice(0, 4));
+      } catch {
+        if (!cancelled) setLatestPlayers([]);
+      }
+    }
+    loadLatest();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,9 +73,14 @@ export default function Home() {
                 />
               </div>
               <div className="mt-3 flex flex-wrap justify-center gap-2">
-                {["All Positions", "All Leagues", "All Ages"].map((label) => (
-                  <span
+                {[
+                  ["Attackers", "/players?position=attacker"],
+                  [LEAGUE_OPTIONS[1], `/players?league=${encodeURIComponent(LEAGUE_OPTIONS[1])}`],
+                  ["U21", "/players?age_max=21"],
+                ].map(([label, href]) => (
+                  <Link
                     key={label}
+                    href={href}
                     className="rounded-full px-3 py-1 text-xs font-medium border inline-flex items-center gap-1"
                     style={{
                       background: "rgba(255,255,255,0.5)",
@@ -65,7 +89,7 @@ export default function Home() {
                     }}
                   >
                     {label} ▾
-                  </span>
+                  </Link>
                 ))}
               </div>
             </form>
@@ -151,20 +175,24 @@ export default function Home() {
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp size={18} style={{ color: "var(--color-stat-attack)" }} />
               <h2 className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
-                Top Scorers
+                Stat Scout Starters
               </h2>
             </div>
             <div className="space-y-1.5">
-              {["E. Haaland", "K. Mbappe", "H. Kane"].map((name, i) => (
+              {[
+                ["Goals ≥ 10", "/scout-builder?position=attacker&goalsMin=10&ageMin=16&ageMax=35"],
+                ["Rating ≥ 7.5", "/scout-builder?ratingMin=7.5&ageMin=16&ageMax=35"],
+                ["U21 Prospects", "/players?age_max=21"],
+              ].map(([name, href], i) => (
                 <Link
                   key={name}
-                  href={`/players?query=${encodeURIComponent(name)}`}
+                  href={href}
                   className="flex items-center justify-between text-sm py-1 rounded-lg px-2 -mx-2 transition-colors"
                   style={{ color: "var(--color-text)" }}
                 >
                   <span>{i + 1}. {name}</span>
                   <span className="text-xs font-mono font-semibold" style={{ color: "var(--color-stat-attack)" }}>
-                    {28 - i * 4} ⚽
+                    Open
                   </span>
                 </Link>
               ))}
@@ -178,18 +206,18 @@ export default function Home() {
             <div className="flex items-center gap-2 mb-3">
               <ArrowRightLeft size={18} style={{ color: "var(--color-warning)" }} />
               <h2 className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
-                Active Transfers
+                Data Coverage
               </h2>
             </div>
             <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-              Latest confirmed moves
+              Sportmonks coverage depends on league, season, and API plan.
             </p>
             <Link
               href="/players"
               className="mt-auto text-sm font-medium"
               style={{ color: "var(--color-primary-dark)" }}
             >
-              Explore →
+              Check players →
             </Link>
           </div>
         </BentoCell>
@@ -203,16 +231,22 @@ export default function Home() {
                 Recently Updated Players
               </h2>
             </div>
-            <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-              Latest stat updates via Sportmonks API
-            </p>
-            <Link
-              href="/players"
-              className="mt-auto text-sm font-medium"
-              style={{ color: "var(--color-primary-dark)" }}
-            >
-              Browse latest →
-            </Link>
+            {latestPlayers.length > 0 ? (
+              <div className="space-y-2">
+                {latestPlayers.map((player) => (
+                  <Link key={player.id} href={`/players/${player.id}`} className="block text-sm" style={{ color: "var(--color-text)" }}>
+                    {player.display_name}
+                    <span className="ml-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
+                      {player.position?.name || "Updated"}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+                Latest updates unavailable for the current API response.
+              </p>
+            )}
           </div>
         </BentoCell>
       </BentoGrid>

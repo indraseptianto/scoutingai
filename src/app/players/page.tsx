@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { PlayerCard } from "@/components/player/PlayerCard";
 import { SkeletonCell } from "@/components/ui/SkeletonCell";
+import { DataQualityNotice } from "@/components/ui/DataQualityNotice";
 import { LEAGUE_OPTIONS } from "@/lib/seasons";
 
 const POSITION_OPTIONS = [
@@ -46,6 +47,7 @@ function SearchContent() {
   const [ageRange, setAgeRange] = useState<[number, number]>([initialAgeMin, initialAgeMax]);
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "rating");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [dataQuality, setDataQuality] = useState("");
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const hasMountedRef = useRef(false);
 
@@ -76,6 +78,12 @@ function SearchContent() {
         const res = await fetch(`/api/players/search?${params.toString()}`);
         const data = await res.json();
         const newPlayers = data.data || [];
+        const hasStatFilters = ["goals_min", "assists_min", "pass_min", "rating_min", "apps_min", "tackles_min"].some((key) => buildFilterParams().has(key));
+        setDataQuality(
+          hasStatFilters && newPlayers.length === 0
+            ? "Sportmonks returned no players matching the current stat filters on this page. Coverage can vary by season, league, and subscription plan."
+            : ""
+        );
         setPlayers((prev) => (reset ? newPlayers : [...prev, ...newPlayers]));
         setHasMore(newPlayers.length === 20);
       } catch (err) {
@@ -99,6 +107,7 @@ function SearchContent() {
         if (!cancelled) {
           setPlayers(data.data || []);
           setHasMore((data.data || []).length === 20);
+          setDataQuality((data.data || []).length === 0 ? "Sportmonks returned no players for the current query/filter combination." : "");
         }
       } catch (err) {
         console.error(err);
@@ -482,6 +491,14 @@ function SearchContent() {
               </select>
             </div>
           )}
+
+          <div className="mb-4">
+            <DataQualityNotice
+              visible={!!dataQuality}
+              message={dataQuality}
+              details="Try a broader filter, a different season, or verify that your Sportmonks subscription includes the requested statistics."
+            />
+          </div>
 
           {!query.trim() && (
             <div className="flex flex-col items-center justify-center py-32">
