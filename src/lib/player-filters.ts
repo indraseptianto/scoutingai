@@ -83,7 +83,7 @@ export function filterPlayers(players: RawPlayer[], filters: PlayerFilterParams)
     if (filters.statThresholds) {
       for (const [statId, minValue] of Object.entries(filters.statThresholds)) {
         const value = collectStat(player, Number(statId));
-        if (value !== null && value < minValue) return false;
+        if (value === null || value < minValue) return false;
       }
     }
 
