@@ -158,6 +158,9 @@ export default function PlayerProfilePage() {
               nationality: player.nationality,
               teams: player.teams,
               joinYear,
+              statistics: statMap,
+              transfers,
+              selectedSeason,
             }}
           />
         </BentoCell>

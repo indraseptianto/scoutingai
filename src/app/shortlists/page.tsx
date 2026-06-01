@@ -42,7 +42,16 @@ export default function ShortlistsPage() {
   const [searchPlayer, setSearchPlayer] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [statPreviews, setStatPreviews] = useState<Record<number, StatPreview>>({});
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const router = useRouter();
+
+  const allTags = Array.from(new Set(shortlists.flatMap((sl) => sl.players.flatMap((player) => player.tags))));
+  const visibleShortlists = activeTag
+    ? shortlists.map((sl) => ({
+        ...sl,
+        players: sl.players.filter((player) => player.tags.includes(activeTag)),
+      })).filter((sl) => sl.players.length > 0)
+    : shortlists;
 
   useEffect(() => {
     const ids = Array.from(new Set(shortlists.flatMap((sl) => sl.players.map((p) => p.playerId))));
@@ -102,9 +111,25 @@ export default function ShortlistsPage() {
               + New Shortlist
             </button>
           </div>
+          {allTags.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                onClick={() => setActiveTag(null)}
+                className="rounded-full px-3 py-1 text-xs font-semibold"
+                style={{ background: activeTag === null ? "var(--color-primary-dark)" : "rgba(255,255,255,0.35)", color: activeTag === null ? "white" : "var(--color-text)" }}
+              >
+                All Tags
+              </button>
+              {allTags.map((tag) => (
+                <button key={tag} onClick={() => setActiveTag(tag)}>
+                  <TagBadge tag={tag} size="sm" />
+                </button>
+              ))}
+            </div>
+          )}
         </BentoCell>
 
-        {shortlists.map((sl) => (
+        {visibleShortlists.map((sl) => (
           <BentoCell key={sl.id} size="1x2">
             <div className="flex flex-col h-full">
               <div className="flex items-start justify-between mb-2">

@@ -4,9 +4,21 @@ import { useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import { useShortlistStore } from "@/lib/shortlist-store";
 
+const UPDATE_LOG_KEY = "scoutvision-update-log";
+
+type UpdateLogItem = { id: number; name: string; message: string; checkedAt: string };
+
 export function UpdateMonitor() {
   const { shortlists } = useShortlistStore();
-  const [updates, setUpdates] = useState<{ id: number; name: string; message: string }[]>([]);
+  const [updates, setUpdates] = useState<UpdateLogItem[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = window.localStorage.getItem(UPDATE_LOG_KEY);
+      return stored ? (JSON.parse(stored) as UpdateLogItem[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -15,7 +27,7 @@ export function UpdateMonitor() {
     const playerIds = shortlists.flatMap((sl) => sl.players.map((p) => p.playerId));
     if (playerIds.length === 0) return;
 
-    const interval = setInterval(async () => {
+    const checkUpdates = async () => {
       try {
         const res = await fetch("/api/players/latest");
         const data = await res.json();
@@ -28,15 +40,23 @@ export function UpdateMonitor() {
             id: p.id,
             name: p.display_name,
             message: `${p.display_name} — stats updated`,
+            checkedAt: new Date().toISOString(),
           }));
 
         if (newUpdates.length > 0) {
-          setUpdates(newUpdates);
+          setUpdates((prev) => {
+            const merged = [...newUpdates, ...prev].slice(0, 20);
+            window.localStorage.setItem(UPDATE_LOG_KEY, JSON.stringify(merged));
+            return merged;
+          });
         }
       } catch {
         // Silently fail
       }
-    }, 7200000); // 2 hours
+    };
+
+    checkUpdates();
+    const interval = setInterval(checkUpdates, 7200000); // 2 hours
 
     return () => clearInterval(interval);
   }, [shortlists]);
@@ -77,8 +97,11 @@ export function UpdateMonitor() {
             {updates.length > 0 ? (
               <div className="space-y-2">
                 {updates.map((u) => (
-                  <div key={u.id} className="text-xs py-1" style={{ color: "var(--color-text)" }}>
+                  <div key={`${u.id}-${u.checkedAt}`} className="text-xs py-1" style={{ color: "var(--color-text)" }}>
                     {u.message}
+                    <div className="text-[10px] mt-0.5" style={{ color: "var(--color-text-dim)" }}>
+                      {new Date(u.checkedAt).toLocaleString()}
+                    </div>
                   </div>
                 ))}
               </div>

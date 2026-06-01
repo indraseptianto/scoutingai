@@ -14,6 +14,9 @@ type ReportPlayer = {
   detailed_position?: { name: string };
   nationality?: { name: string };
   teams?: { name: string }[];
+  statistics?: { stat_type_id: number; value: number }[];
+  transfers?: { id: number; date: string; from_team?: { name: string }; to_team?: { name: string } }[];
+  selectedSeason?: string;
 };
 
 function escapeHtml(value: unknown) {
@@ -66,11 +69,33 @@ export function exportPlayerReport(player: ReportPlayer) {
   const name = player.display_name || player.common_name || `Player #${player.id}`;
   const team = player.teams?.[0]?.name || "Unattached / Unknown";
   const position = player.detailed_position?.name || player.position?.name || "Unknown";
+  const keyStats = [
+    ["Goals", 52],
+    ["Assists", 79],
+    ["Rating", 118],
+    ["Pass Accuracy %", 82],
+    ["Minutes", 119],
+    ["Appearances", 321],
+    ["Tackles", 78],
+    ["Interceptions", 100],
+    ["Expected Goals", 5304],
+  ].map(([label, id]) => {
+    const stat = player.statistics?.find((item) => item.stat_type_id === id);
+    return `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(stat?.value ?? "Not available")}</td></tr>`;
+  }).join("");
+  const transfers = (player.transfers || [])
+    .slice()
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 8)
+    .map((transfer) => `<tr><td>${escapeHtml(transfer.date || "-")}</td><td>${escapeHtml(transfer.from_team?.name || "-")}</td><td>${escapeHtml(transfer.to_team?.name || "-")}</td></tr>`)
+    .join("");
+  const logo = typeof window !== "undefined" ? window.localStorage.getItem("scoutvision-report-logo") : null;
   const body = `
     <section class="header">
+      ${logo ? `<img src="${escapeHtml(logo)}" alt="Brand logo" style="max-height:42px;margin-bottom:10px" />` : ""}
       <div class="eyebrow">ScoutVision Scouting Report</div>
       <h1>${escapeHtml(name)}</h1>
-      <div class="muted">Generated ${new Date().toLocaleDateString()} · Player ID ${escapeHtml(player.id)}</div>
+      <div class="muted">Season ${escapeHtml(player.selectedSeason || "Current")} · Generated ${new Date().toLocaleDateString()} · Player ID ${escapeHtml(player.id)}</div>
     </section>
     <section class="player">
       <img class="avatar" src="${escapeHtml(player.image_path || "/placeholder.svg")}" alt="${escapeHtml(name)}" />
@@ -91,6 +116,15 @@ export function exportPlayerReport(player: ReportPlayer) {
       <tr><th>Primary Position</th><td>${escapeHtml(position)}</td></tr>
       <tr><th>Report Link</th><td>${escapeHtml(window.location.href)}</td></tr>
     </tbody></table>
+    <h2>Season Statistics</h2>
+    <table><tbody>${keyStats}</tbody></table>
+    <h2>Radar Snapshot</h2>
+    <p class="muted">Radar visual is represented by the key season statistics above for print portability.</p>
+    <h2>Transfer History</h2>
+    <table>
+      <thead><tr><th>Date</th><th>From</th><th>To</th></tr></thead>
+      <tbody>${transfers || `<tr><td colspan="3">No transfer history available.</td></tr>`}</tbody>
+    </table>
     <div class="footer">Use browser Save as PDF to download this print-ready report.</div>`;
   openPrintReport(`${name} scouting report`, body);
 }

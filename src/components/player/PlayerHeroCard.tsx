@@ -21,6 +21,9 @@ interface PlayerHeroCardProps {
     nationality?: { id: number; name: string; image_path?: string };
     teams?: { id: number; name: string; image_path: string }[];
     joinYear?: number | null;
+    statistics?: { stat_type_id: number; value: number }[];
+    transfers?: { id: number; date: string; from_team?: { name: string }; to_team?: { name: string } }[];
+    selectedSeason?: string;
   };
 }
 
@@ -43,6 +46,17 @@ export function PlayerHeroCard({ player }: PlayerHeroCardProps) {
   const positionCategory = getPositionCategory(player.position.code);
   const team = player.teams?.[0];
   const imageUrl = player.image_path || "/placeholder.svg";
+
+  const handleLogoUpload = (file: File | undefined) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        window.localStorage.setItem("scoutvision-report-logo", reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div
@@ -118,6 +132,15 @@ export function PlayerHeroCard({ player }: PlayerHeroCardProps) {
             >
               Export PDF
             </button>
+            <label className="cursor-pointer rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium hover:bg-white/20 transition-colors">
+              Upload Logo
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(event) => handleLogoUpload(event.target.files?.[0])}
+              />
+            </label>
           </div>
         </div>
       </div>
