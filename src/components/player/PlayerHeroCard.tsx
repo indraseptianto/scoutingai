@@ -4,6 +4,7 @@ import { PositionBadge } from "@/components/ui/PositionBadge";
 import { PlayerAvatar } from "@/components/ui/PlayerAvatar";
 import { ShortlistButton } from "@/components/shortlist/ShortlistButton";
 import { getPositionCategory } from "@/lib/stat-categories";
+import { exportPlayerReport } from "@/lib/pdf-export";
 
 interface PlayerHeroCardProps {
   player: {
@@ -110,6 +111,12 @@ export function PlayerHeroCard({ player }: PlayerHeroCardProps) {
             />
             <button className="rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium hover:bg-white/20 transition-colors">
               Share
+            </button>
+            <button
+              onClick={() => exportPlayerReport(player)}
+              className="rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium hover:bg-white/20 transition-colors"
+            >
+              Export PDF
             </button>
           </div>
         </div>

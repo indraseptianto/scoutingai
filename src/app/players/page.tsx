@@ -31,6 +31,8 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialQuery = searchParams.get("query") || "";
+  const initialAgeMin = Number(searchParams.get("age_min") || 16);
+  const initialAgeMax = Number(searchParams.get("age_max") || 40);
 
   const [query, setQuery] = useState(initialQuery);
   const [players, setPlayers] = useState<{
@@ -45,20 +47,35 @@ function SearchContent() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
-  const [selectedDetailedPositions, setSelectedDetailedPositions] = useState<string[]>([]);
-  const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
-  const [ageRange, setAgeRange] = useState<[number, number]>([16, 40]);
-  const [sortBy, setSortBy] = useState("rating");
+  const [selectedPosition, setSelectedPosition] = useState<string | null>(searchParams.get("position"));
+  const [selectedDetailedPositions, setSelectedDetailedPositions] = useState<string[]>(searchParams.get("detailed")?.split(",").filter(Boolean) || []);
+  const [selectedLeagues, setSelectedLeagues] = useState<string[]>(searchParams.get("league")?.split(",").filter(Boolean) || []);
+  const [ageRange, setAgeRange] = useState<[number, number]>([initialAgeMin, initialAgeMax]);
+  const [sortBy, setSortBy] = useState(searchParams.get("sort") || "rating");
+
+  const buildFilterParams = useCallback(() => {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("query", query.trim());
+    if (selectedPosition) params.set("position", selectedPosition);
+    if (selectedDetailedPositions.length) params.set("detailed", selectedDetailedPositions.join(","));
+    if (selectedLeagues.length) params.set("league", selectedLeagues.join(","));
+    if (ageRange[0] !== 16) params.set("age_min", String(ageRange[0]));
+    if (ageRange[1] !== 40) params.set("age_max", String(ageRange[1]));
+    if (sortBy !== "rating") params.set("sort", sortBy);
+    return params;
+  }, [ageRange, query, selectedDetailedPositions, selectedLeagues, selectedPosition, sortBy]);
+
+  useEffect(() => {
+    const params = buildFilterParams();
+    window.history.replaceState(null, "", params.size ? `/players?${params.toString()}` : "/players");
+  }, [buildFilterParams]);
 
   const fetchPlayers = useCallback(
     async (p: number, reset = false) => {
-      if (!initialQuery) return;
+      if (!query.trim()) return;
       setLoading(true);
       try {
-        const res = await fetch(
-          `/api/players/search?query=${encodeURIComponent(initialQuery)}&page=${p}`
-        );
+        const res = await fetch(`/api/players/search?query=${encodeURIComponent(query)}&page=${p}`);
         const data = await res.json();
         const newPlayers = data.data || [];
         setPlayers((prev) => (reset ? newPlayers : [...prev, ...newPlayers]));
@@ -68,7 +85,7 @@ function SearchContent() {
       }
       setLoading(false);
     },
-    [initialQuery]
+    [query]
   );
 
   useEffect(() => {
@@ -97,10 +114,9 @@ function SearchContent() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      const params = new URLSearchParams();
-      params.set("query", query.trim());
-      if (selectedPosition) params.set("position", selectedPosition);
-      router.push(`/players?${params.toString()}`);
+      router.push(`/players?${buildFilterParams().toString()}`);
+      setPage(1);
+      fetchPlayers(1, true);
     }
   };
 
@@ -123,7 +139,7 @@ function SearchContent() {
   };
 
   const activeFilters: string[] = [];
-  if (initialQuery) activeFilters.push(`Search: "${initialQuery}"`);
+  if (query.trim()) activeFilters.push(`Search: "${query.trim()}"`);
   if (selectedPosition) {
     const posLabel = POSITION_OPTIONS.find((p) => p.code === selectedPosition)?.label;
     if (posLabel) activeFilters.push(posLabel);
@@ -131,6 +147,8 @@ function SearchContent() {
   if (ageRange[0] > 16 || ageRange[1] < 40) {
     activeFilters.push(`Age ${ageRange[0]}-${ageRange[1]}`);
   }
+  if (selectedDetailedPositions.length) activeFilters.push(selectedDetailedPositions.join(", "));
+  if (selectedLeagues.length) activeFilters.push(selectedLeagues.join(", "));
 
   return (
     <div className="py-6">
@@ -301,7 +319,7 @@ function SearchContent() {
 
         {/* Results */}
         <div>
-          {initialQuery && players.length > 0 && (
+          {query.trim() && players.length > 0 && (
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
                 Showing {players.length} players
@@ -324,7 +342,7 @@ function SearchContent() {
             </div>
           )}
 
-          {!initialQuery && (
+          {!query.trim() && (
             <div className="flex flex-col items-center justify-center py-32">
               <p className="text-lg" style={{ color: "var(--color-text-dim)" }}>
                 Search for a player to get started
@@ -378,10 +396,10 @@ function SearchContent() {
             </>
           )}
 
-          {!loading && players.length === 0 && initialQuery && (
+          {!loading && players.length === 0 && query.trim() && (
             <div className="flex flex-col items-center justify-center py-32">
               <p className="text-lg mb-2" style={{ color: "var(--color-text-muted)" }}>
-                No players match &ldquo;{initialQuery}&rdquo;
+                No players match &ldquo;{query.trim()}&rdquo;
               </p>
               <p className="text-sm mb-6" style={{ color: "var(--color-text-dim)" }}>
                 Try a different search term or adjust your filters

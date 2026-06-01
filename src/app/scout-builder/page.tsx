@@ -5,20 +5,59 @@ import { BentoGrid } from "@/components/bento/BentoGrid";
 import { BentoCell } from "@/components/bento/BentoCell";
 import { PlayerCard } from "@/components/player/PlayerCard";
 import { SkeletonCell } from "@/components/ui/SkeletonCell";
+import { useQueryStore, type QueryPresetValues } from "@/lib/query-store";
+
+function getInitialQueryValues(): QueryPresetValues {
+  if (typeof window === "undefined") {
+    return {
+      position: "defender",
+      detailedPos: "Right Back",
+      ageMin: 20,
+      ageMax: 25,
+      league: "Premier League",
+      season: "2024/25",
+      nationality: "",
+      goalsMin: 3,
+      assistsMin: 2,
+      passMin: 75,
+      ratingMin: 7,
+      appsMin: 15,
+      tacklesMin: 30,
+    };
+  }
+  const params = new URLSearchParams(window.location.search);
+  return {
+    position: params.get("position") || "defender",
+    detailedPos: params.get("detailedPos") || "Right Back",
+    ageMin: Number(params.get("ageMin") || 20),
+    ageMax: Number(params.get("ageMax") || 25),
+    league: params.get("league") || "Premier League",
+    season: params.get("season") || "2024/25",
+    nationality: params.get("nationality") || "",
+    goalsMin: Number(params.get("goalsMin") || 3),
+    assistsMin: Number(params.get("assistsMin") || 2),
+    passMin: Number(params.get("passMin") || 75),
+    ratingMin: Number(params.get("ratingMin") || 7),
+    appsMin: Number(params.get("appsMin") || 15),
+    tacklesMin: Number(params.get("tacklesMin") || 30),
+  };
+}
 
 export default function ScoutBuilderPage() {
-  const [position, setPosition] = useState("defender");
-  const [detailedPos, setDetailedPos] = useState("Right Back");
-  const [ageRange, setAgeRange] = useState<[number, number]>([20, 25]);
-  const [league, setLeague] = useState("Premier League");
-  const [season, setSeason] = useState("2024/25");
-  const [nationality, setNationality] = useState("");
-  const [goalsMin, setGoalsMin] = useState(3);
-  const [assistsMin, setAssistsMin] = useState(2);
-  const [passMin, setPassMin] = useState(75);
-  const [ratingMin, setRatingMin] = useState(7.0);
-  const [appsMin, setAppsMin] = useState(15);
-  const [tacklesMin, setTacklesMin] = useState(30);
+  const [initialValues] = useState(getInitialQueryValues);
+  const { presets, addPreset, removePreset } = useQueryStore();
+  const [position, setPosition] = useState(initialValues.position);
+  const [detailedPos, setDetailedPos] = useState(initialValues.detailedPos);
+  const [ageRange, setAgeRange] = useState<[number, number]>([initialValues.ageMin, initialValues.ageMax]);
+  const [league, setLeague] = useState(initialValues.league);
+  const [season, setSeason] = useState(initialValues.season);
+  const [nationality, setNationality] = useState(initialValues.nationality);
+  const [goalsMin, setGoalsMin] = useState(initialValues.goalsMin);
+  const [assistsMin, setAssistsMin] = useState(initialValues.assistsMin);
+  const [passMin, setPassMin] = useState(initialValues.passMin);
+  const [ratingMin, setRatingMin] = useState(initialValues.ratingMin);
+  const [appsMin, setAppsMin] = useState(initialValues.appsMin);
+  const [tacklesMin, setTacklesMin] = useState(initialValues.tacklesMin);
   const [results, setResults] = useState<{
     id: number;
     display_name: string;
@@ -30,8 +69,49 @@ export default function ScoutBuilderPage() {
   }[]>([]);
   const [loading, setLoading] = useState(false);
   const [resultCount, setResultCount] = useState(0);
+  const [presetName, setPresetName] = useState("");
+
+  const getCurrentValues = (): QueryPresetValues => ({
+    position,
+    detailedPos,
+    ageMin: ageRange[0],
+    ageMax: ageRange[1],
+    league,
+    season,
+    nationality,
+    goalsMin,
+    assistsMin,
+    passMin,
+    ratingMin,
+    appsMin,
+    tacklesMin,
+  });
+
+  const applyValues = (values: QueryPresetValues) => {
+    setPosition(values.position);
+    setDetailedPos(values.detailedPos);
+    setAgeRange([values.ageMin, values.ageMax]);
+    setLeague(values.league);
+    setSeason(values.season);
+    setNationality(values.nationality);
+    setGoalsMin(values.goalsMin);
+    setAssistsMin(values.assistsMin);
+    setPassMin(values.passMin);
+    setRatingMin(values.ratingMin);
+    setAppsMin(values.appsMin);
+    setTacklesMin(values.tacklesMin);
+  };
+
+  const buildPresetParams = (values: QueryPresetValues) => {
+    const params = new URLSearchParams();
+    Object.entries(values).forEach(([key, value]) => {
+      if (value !== "" && value !== undefined) params.set(key, String(value));
+    });
+    return params;
+  };
 
   const handleRunQuery = async () => {
+    window.history.replaceState(null, "", `/scout-builder?${buildPresetParams(getCurrentValues()).toString()}`);
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -51,6 +131,19 @@ export default function ScoutBuilderPage() {
       console.error(err);
     }
     setLoading(false);
+  };
+
+  const handleSavePreset = () => {
+    const name = presetName.trim();
+    if (!name) return;
+    addPreset(name, getCurrentValues());
+    setPresetName("");
+  };
+
+  const handleSharePreset = async () => {
+    const url = `${window.location.origin}/scout-builder?${buildPresetParams(getCurrentValues()).toString()}`;
+    await navigator.clipboard?.writeText(url);
+    window.history.replaceState(null, "", url);
   };
 
   const handleReset = () => {
@@ -253,6 +346,56 @@ export default function ScoutBuilderPage() {
               >
                 Reset All
               </button>
+            </div>
+            <div className="rounded-xl border p-3" style={{ borderColor: "var(--color-border)" }}>
+              <h3 className="text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
+                Save & Share
+              </h3>
+              <div className="flex gap-2">
+                <input
+                  value={presetName}
+                  onChange={(e) => setPresetName(e.target.value)}
+                  placeholder="Preset name"
+                  className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-xs outline-none"
+                  style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border)", color: "var(--color-text)" }}
+                />
+                <button
+                  onClick={handleSavePreset}
+                  className="rounded-full px-3 py-2 text-xs font-medium"
+                  style={{ background: "var(--color-primary)", color: "var(--color-primary-text)" }}
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleSharePreset}
+                  className="rounded-full px-3 py-2 text-xs font-medium border"
+                  style={{ borderColor: "var(--color-border-strong)", color: "var(--color-text)" }}
+                >
+                  Copy URL
+                </button>
+              </div>
+              {presets.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {presets.map((preset) => (
+                    <div key={preset.id} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5" style={{ background: "var(--color-surface-2)" }}>
+                      <button
+                        onClick={() => applyValues(preset.values)}
+                        className="truncate text-left text-xs font-medium"
+                        style={{ color: "var(--color-text)" }}
+                      >
+                        {preset.name}
+                      </button>
+                      <button
+                        onClick={() => removePreset(preset.id)}
+                        className="text-xs"
+                        style={{ color: "var(--color-text-dim)" }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </BentoCell>

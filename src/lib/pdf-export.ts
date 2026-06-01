@@ -1,0 +1,119 @@
+import type { Shortlist } from "@/lib/shortlist-store";
+
+type ReportPlayer = {
+  id: number;
+  display_name: string;
+  common_name?: string;
+  image_path?: string;
+  date_of_birth?: string;
+  height?: number;
+  weight?: number;
+  preferred_foot?: string;
+  position?: { name: string; code?: string };
+  detailed_position?: { name: string };
+  nationality?: { name: string };
+  teams?: { name: string }[];
+};
+
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function openPrintReport(title: string, body: string) {
+  const printWindow = window.open("", "_blank", "noopener,noreferrer,width=900,height=1200");
+  if (!printWindow) return;
+
+  printWindow.document.write(`<!doctype html>
+    <html>
+      <head>
+        <title>${escapeHtml(title)}</title>
+        <style>
+          @page { size: A4; margin: 18mm; }
+          * { box-sizing: border-box; }
+          body { font-family: Inter, Arial, sans-serif; color: #111827; margin: 0; }
+          .header { border-bottom: 2px solid #0F766E; padding-bottom: 16px; margin-bottom: 22px; }
+          .eyebrow { color: #0F766E; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+          h1 { margin: 6px 0 4px; font-size: 30px; }
+          h2 { margin: 24px 0 10px; font-size: 16px; color: #0F766E; }
+          .muted { color: #6B7280; font-size: 12px; }
+          .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+          .card { border: 1px solid #E5E7EB; border-radius: 14px; padding: 12px; background: #F9FAFB; }
+          .label { color: #6B7280; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+          .value { margin-top: 4px; font-size: 16px; font-weight: 800; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          th, td { border-bottom: 1px solid #E5E7EB; padding: 9px; text-align: left; font-size: 12px; }
+          th { color: #374151; background: #F3F4F6; }
+          .player { display: flex; gap: 16px; align-items: center; }
+          .avatar { width: 88px; height: 88px; border-radius: 18px; object-fit: cover; background: #E5E7EB; }
+          .tag { display: inline-block; padding: 3px 8px; border-radius: 999px; background: #DBEAFE; color: #1D4ED8; font-size: 10px; font-weight: 700; margin-right: 4px; }
+          .footer { margin-top: 28px; color: #9CA3AF; font-size: 10px; }
+        </style>
+      </head>
+      <body>${body}</body>
+    </html>`);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => printWindow.print(), 250);
+}
+
+export function exportPlayerReport(player: ReportPlayer) {
+  const name = player.display_name || player.common_name || `Player #${player.id}`;
+  const team = player.teams?.[0]?.name || "Unattached / Unknown";
+  const position = player.detailed_position?.name || player.position?.name || "Unknown";
+  const body = `
+    <section class="header">
+      <div class="eyebrow">ScoutVision Scouting Report</div>
+      <h1>${escapeHtml(name)}</h1>
+      <div class="muted">Generated ${new Date().toLocaleDateString()} · Player ID ${escapeHtml(player.id)}</div>
+    </section>
+    <section class="player">
+      <img class="avatar" src="${escapeHtml(player.image_path || "/placeholder.svg")}" alt="${escapeHtml(name)}" />
+      <div>
+        <h2 style="margin-top:0">Profile</h2>
+        <div class="muted">${escapeHtml(position)} · ${escapeHtml(team)} · ${escapeHtml(player.nationality?.name || "Unknown nationality")}</div>
+      </div>
+    </section>
+    <h2>Bio Snapshot</h2>
+    <div class="grid">
+      <div class="card"><div class="label">Date of Birth</div><div class="value">${escapeHtml(player.date_of_birth || "-")}</div></div>
+      <div class="card"><div class="label">Physical</div><div class="value">${escapeHtml(player.height || "-")}cm / ${escapeHtml(player.weight || "-")}kg</div></div>
+      <div class="card"><div class="label">Preferred Foot</div><div class="value">${escapeHtml(player.preferred_foot || "-")}</div></div>
+    </div>
+    <h2>Scout Notes</h2>
+    <table><tbody>
+      <tr><th>Current Team</th><td>${escapeHtml(team)}</td></tr>
+      <tr><th>Primary Position</th><td>${escapeHtml(position)}</td></tr>
+      <tr><th>Report Link</th><td>${escapeHtml(window.location.href)}</td></tr>
+    </tbody></table>
+    <div class="footer">Use browser Save as PDF to download this print-ready report.</div>`;
+  openPrintReport(`${name} scouting report`, body);
+}
+
+export function exportShortlistReport(shortlist: Shortlist) {
+  const rows = shortlist.players.map((player) => `
+    <tr>
+      <td>${escapeHtml(player.playerName || `Player #${player.playerId}`)}</td>
+      <td>${escapeHtml(player.playerPosition || "-")}</td>
+      <td>${escapeHtml(player.playerTeam || "-")}</td>
+      <td>${player.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("") || "-"}</td>
+    </tr>`).join("");
+
+  const body = `
+    <section class="header">
+      <div class="eyebrow">ScoutVision Shortlist Report</div>
+      <h1>${escapeHtml(shortlist.name)}</h1>
+      <div class="muted">${escapeHtml(shortlist.priority)} priority · ${shortlist.players.length} players · Generated ${new Date().toLocaleDateString()}</div>
+    </section>
+    <h2>Shortlist Players</h2>
+    <table>
+      <thead><tr><th>Player</th><th>Position</th><th>Team</th><th>Tags</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="4">No players in this shortlist.</td></tr>`}</tbody>
+    </table>
+    <div class="footer">Use browser Save as PDF to download this print-ready report.</div>`;
+  openPrintReport(`${shortlist.name} shortlist report`, body);
+}

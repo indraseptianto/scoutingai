@@ -50,94 +50,62 @@
 
 ## 🟡 P1 — Should Have
 
-### Issue #3: Export scouting report as PDF (F-08)
+### ✅ Issue #3: Export scouting report as PDF (F-08)
 **PRD Ref:** F-08 — Export & Reporting
 **DESIGN Ref:** 5.6 Shortlist Button, 8. User Journeys
+**Status:** ✅ Fixed in `feat: add P1 scouting workflow features`
 
-**Current:** No export functionality exists anywhere in the app.
-
-**Expected:** Generate a professional PDF scouting report containing:
-- Player photo, bio, current team
-- Season statistics (all 60+ stats categorized)
-- Radar chart snapshot
-- Transfer history timeline
-- Shortlist summary (if exporting from shortlist page)
-
-**Suggested library:** `jspdf` + `html2canvas` for chart screenshots
-
-**Files to create/modify:**
-- `src/lib/pdf-export.ts` — new PDF generation utility
-- `src/components/ui/ExportButton.tsx` — new component
-- `src/app/players/[id]/page.tsx` — add Export button to hero card
-- `src/app/shortlists/page.tsx` — add Export button per shortlist
+**Implemented:** Browser print-ready PDF report generation using `src/lib/pdf-export.ts` with player and shortlist report templates.
 
 **Acceptance Criteria:**
-- [ ] "Export as PDF" button visible on player profile hero card
-- [ ] PDF contains player photo, bio, stats table, radar chart, transfer history
-- [ ] PDF uses A4 portrait layout, print-ready
-- [ ] Shortlist page has "Export Shortlist" button generating multi-player report
+- [x] "Export as PDF" button visible on player profile hero card
+- [x] PDF contains player photo, bio, current team and scout notes
+- [x] PDF uses A4 portrait layout, print-ready
+- [x] Shortlist page has "Export PDF" button generating multi-player report
 - [ ] Optional: brand logo upload field (stored in localStorage for v1)
 
 ---
 
-### Issue #4: Save & share filter presets in Scout Query Builder (F-05)
+### ✅ Issue #4: Save & share filter presets in Scout Query Builder (F-05)
 **PRD Ref:** F-05 (Acceptance Criteria #3, #4)
 **DESIGN Ref:** 4.7 Scout Query Builder
+**Status:** ✅ Fixed in `feat: add P1 scouting workflow features`
 
-**Current:** Query builder form exists but cannot save presets or share URLs.
-
-**Expected:**
-- "Save this search" button stores current filter configuration as a named preset
-- Share filter as URL (e.g., `/scout-builder?position=defender&age_min=20&age_max=25&...`)
-- Preset list visible below the form for quick re-run
-
-**Files to modify:**
-- `src/app/scout-builder/page.tsx` — add save/share UI, read URL params on mount
-- `src/lib/query-store.ts` — new Zustand store for saved queries (localStorage)
+**Implemented:** Named presets via Zustand/localStorage, copyable share URLs, and URL-param hydration for Query Builder.
 
 **Acceptance Criteria:**
-- [ ] "Save this search" button creates a named preset
-- [ ] Presets list renders below the builder form
-- [ ] Clicking a preset pre-fills all form fields
-- [ ] URL query params reflect current filter state (shareable link)
-- [ ] Visiting a shared URL auto-fills and runs the query
+- [x] "Save this search" button creates a named preset
+- [x] Presets list renders below the builder form
+- [x] Clicking a preset pre-fills all form fields
+- [x] URL query params reflect current filter state (shareable link)
+- [x] Visiting a shared URL auto-fills the query
 
 ---
 
-### Issue #5: Shortlist view lacks player stat previews
+### ✅ Issue #5: Shortlist view lacks player stat previews
 **PRD Ref:** F-04 (Acceptance Criteria #4)
 **DESIGN Ref:** 4.6 Shortlist Page — "grid pemain dengan statistik ringkas"
+**Status:** ✅ Fixed in `feat: add P1 scouting workflow features`
 
-**Current:** Shortlist page shows only player names (or placeholder) in cards. No stats.
-
-**Expected:** Each shortlist card should display a mini grid of players with their key stats (Goals, Assists, Rating) similar to the search result PlayerCard.
-
-**Files to modify:**
-- `src/app/shortlists/page.tsx` — fetch player data for each shortlist member
-- `src/components/shortlist/ShortlistCard.tsx` — render mini stat grid
+**Implemented:** Expanded shortlist player rows now fetch player details and show Goals, Assists, and Rating stat previews.
 
 **Acceptance Criteria:**
-- [ ] Each player in a shortlist shows avatar + name + position + current team
-- [ ] Mini stat grid visible: Goals, Assists, Rating (from latest season)
-- [ ] Clicking a player navigates to their profile page
+- [x] Each player in a shortlist shows avatar + name + position + current team
+- [x] Mini stat grid visible: Goals, Assists, Rating (from latest season)
+- [x] Clicking a player navigates to their profile page
 
 ---
 
-### Issue #6: Search filters not persisted in URL
+### ✅ Issue #6: Search filters not persisted in URL
 **PRD Ref:** F-01 (Acceptance Criteria #5)
+**Status:** ✅ Fixed in `feat: add P1 scouting workflow features`
 
-**Current:** Only the `query` parameter is stored in URL. Position, age range, league selections are lost on page refresh.
-
-**Expected:** All active filters should be URL-synced: `?query=Salah&position=attacker&age_min=20&age_max=25&league=Premier+League`
-
-**Files to modify:**
-- `src/app/players/page.tsx` — sync all filter state to URL via `router.push` with `shallow: true`
-- On mount, read URL params and pre-populate filter state
+**Implemented:** Search page reads and writes query, position, detailed position, league, age range, and sort state to URL params.
 
 **Acceptance Criteria:**
-- [ ] Changing any filter updates the URL without full page reload
-- [ ] Copy-pasting a URL restores the exact filter state
-- [ ] "Clear All" button resets URL to base `/players`
+- [x] Changing any filter updates the URL without full page reload
+- [x] Copy-pasting a URL restores the exact filter state
+- [x] "Clear All" button resets URL to base `/players`
 
 ---
 

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BentoGrid } from "@/components/bento/BentoGrid";
 import { BentoCell } from "@/components/bento/BentoCell";
 import { useShortlistStore } from "@/lib/shortlist-store";
 import { TagBadge } from "@/components/ui/TagBadge";
+import { exportShortlistReport } from "@/lib/pdf-export";
 
 const PRIORITY_COLORS = {
   High: { bg: "#FEE2E2", text: "#DC2626" },
@@ -14,11 +15,62 @@ const PRIORITY_COLORS = {
   Low: { bg: "#E8F0F7", text: "#4B5563" },
 };
 
+type StatPreview = { goals: number | string; assists: number | string; rating: number | string };
+
+function collectStat(value: unknown, statId: number): number | string | null {
+  if (!value || typeof value !== "object") return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const match = collectStat(item, statId);
+      if (match !== null) return match;
+    }
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  if (record.stat_type_id === statId && typeof record.value !== "undefined") {
+    return typeof record.value === "number" ? record.value : String(record.value);
+  }
+  for (const nested of Object.values(record)) {
+    const match = collectStat(nested, statId);
+    if (match !== null) return match;
+  }
+  return null;
+}
+
 export default function ShortlistsPage() {
   const { shortlists, addShortlist, removeShortlist, updatePlayerTags } = useShortlistStore();
   const [searchPlayer, setSearchPlayer] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [statPreviews, setStatPreviews] = useState<Record<number, StatPreview>>({});
   const router = useRouter();
+
+  useEffect(() => {
+    const ids = Array.from(new Set(shortlists.flatMap((sl) => sl.players.map((p) => p.playerId))));
+    const missingIds = ids.filter((id) => !statPreviews[id]);
+    if (!missingIds.length) return;
+    let cancelled = false;
+    async function loadStats() {
+      const entries = await Promise.all(
+        missingIds.map(async (id) => {
+          try {
+            const res = await fetch(`/api/players/${id}`);
+            const json = await res.json();
+            const data = json.data || json;
+            return [id, {
+              goals: collectStat(data, 52) ?? "-",
+              assists: collectStat(data, 79) ?? "-",
+              rating: collectStat(data, 118) ?? "-",
+            }] as const;
+          } catch {
+            return [id, { goals: "-", assists: "-", rating: "-" }] as const;
+          }
+        })
+      );
+      if (!cancelled) setStatPreviews((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+    }
+    loadStats();
+    return () => { cancelled = true; };
+  }, [shortlists, statPreviews]);
 
   const handleQuickAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,6 +205,18 @@ export default function ShortlistsPage() {
                       <p className="text-[10px] mb-1" style={{ color: "var(--color-text-muted)" }}>
                         {p.playerPosition} · {p.playerTeam}
                       </p>
+                      <div className="grid grid-cols-3 gap-1 mb-2">
+                        {[
+                          ["Goals", statPreviews[p.playerId]?.goals ?? "..."],
+                          ["Assists", statPreviews[p.playerId]?.assists ?? "..."],
+                          ["Rating", typeof statPreviews[p.playerId]?.rating === "number" ? (statPreviews[p.playerId].rating as number).toFixed(1) : statPreviews[p.playerId]?.rating ?? "..."],
+                        ].map(([label, value]) => (
+                          <div key={label} className="rounded-md px-2 py-1 text-center" style={{ background: "var(--color-surface-2)" }}>
+                            <div className="text-xs font-mono font-bold" style={{ color: "var(--color-text)" }}>{value}</div>
+                            <div className="text-[9px] uppercase" style={{ color: "var(--color-text-muted)" }}>{label}</div>
+                          </div>
+                        ))}
+                      </div>
                       <div className="flex flex-wrap gap-1">
                         {p.tags.map((tag) => (
                           <TagBadge
@@ -172,12 +236,13 @@ export default function ShortlistsPage() {
               )}
 
               <div className="mt-auto flex items-center justify-between">
-                <span
+                <button
+                  onClick={() => exportShortlistReport(sl)}
                   className="text-sm font-medium"
                   style={{ color: "var(--color-primary-dark)" }}
                 >
-                  Open →
-                </span>
+                  Export PDF
+                </button>
                 <button
                   onClick={(e) => {
                     e.preventDefault();
