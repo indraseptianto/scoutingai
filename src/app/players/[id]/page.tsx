@@ -29,7 +29,7 @@ interface RawPlayerData {
   teams?: { id: number; name: string; image_path: string }[];
   statistics?: { type_id: number; stat_type_id: number; value: number }[];
   transfers?: { id: number; date: string; from_team?: { name: string }; to_team?: { name: string } }[];
-  trophies?: { id: number; name: string; league?: string }[];
+  trophies?: { id: number; name: string; league?: string; season?: string; trophy_id?: number }[];
 }
 
 export default function PlayerProfilePage() {
@@ -130,8 +130,8 @@ export default function PlayerProfilePage() {
     value: s.value,
   }));
 
-  const getStatValue = (statId: number): number =>
-    statMap.find((s) => s.stat_type_id === statId)?.value || 0;
+  const getStatValue = (statId: number): number | string =>
+    statMap.find((s) => s.stat_type_id === statId)?.value ?? "—";
 
   const positionCode = player.position?.code || "midfielder";
 
@@ -290,7 +290,10 @@ export default function PlayerProfilePage() {
                       color: "var(--color-text)",
                     }}
                   >
-                    🏆 {t.name || t.league}
+                    🏆 {t.name || t.league || `Trophy #${t.trophy_id || t.id}`}
+                    {t.season && (
+                      <span style={{ color: "var(--color-text-muted)" }}>· {t.season}</span>
+                    )}
                   </span>
                 ))}
               </div>

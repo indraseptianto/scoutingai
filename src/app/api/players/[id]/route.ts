@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSeasonId } from "@/lib/seasons";
+import { enrichPlayerTeamNames } from "@/lib/sportmonks-context";
 import { normalizePlayer } from "@/lib/sportmonks-normalize";
 
 const SPORTMONKS_BASE = "https://api.sportmonks.com/v3/football";
@@ -35,6 +36,6 @@ export async function GET(
     );
   }
   const data = await res.json();
-  data.data = normalizePlayer(data.data || data);
+  data.data = await enrichPlayerTeamNames(SPORTMONKS_BASE, API_TOKEN, normalizePlayer(data.data || data));
   return NextResponse.json(data);
 }
