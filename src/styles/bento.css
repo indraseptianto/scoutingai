@@ -1,0 +1,91 @@
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--grid-gap);
+  padding: var(--space-6);
+}
+
+.cell-1x1 { grid-column: span 3; grid-row: span 1; }
+.cell-1x2 { grid-column: span 3; grid-row: span 2; }
+.cell-2x1 { grid-column: span 6; grid-row: span 1; }
+.cell-2x2 { grid-column: span 6; grid-row: span 2; }
+.cell-3x1 { grid-column: span 9; grid-row: span 1; }
+.cell-4x1 { grid-column: span 12; grid-row: span 1; }
+.cell-4x2 { grid-column: span 12; grid-row: span 2; }
+
+@media (max-width: 1280px) {
+  .bento-grid { grid-template-columns: repeat(8, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .bento-grid { grid-template-columns: repeat(4, 1fr); }
+  [class^="cell-"] { grid-column: span 4; grid-row: span 1; }
+}
+
+.bento-cell {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--cell-pad);
+  box-shadow: var(--shadow-cell);
+  transition: box-shadow var(--dur-fast) ease, transform var(--dur-fast) ease;
+  overflow: hidden;
+}
+
+.bento-cell:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+.bento-cell--primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary-dark);
+}
+
+.bento-cell--secondary {
+  background: #E8F0F7;
+  border-color: var(--color-secondary);
+}
+
+.bento-cell--dark {
+  background: #1F2937;
+  border-color: #374151;
+  color: #F9FAFB;
+}
+
+.bento-cell--ghost {
+  background: transparent;
+  border-style: dashed;
+}
+
+.skeleton-line {
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    #F0E6D8 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@keyframes cellEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fillBar {
+  from { width: 0%; }
+  to { width: var(--fill-percent); }
+}
