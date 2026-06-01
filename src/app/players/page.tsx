@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { PlayerCard } from "@/components/player/PlayerCard";
 import { SkeletonCell } from "@/components/ui/SkeletonCell";
 
@@ -20,11 +20,11 @@ const DETAILED_POSITIONS: Record<string, string[]> = {
 };
 
 const LEAGUE_OPTIONS = [
-  "Premier League",
   "La Liga",
-  "Bundesliga",
-  "Serie A",
-  "Ligue 1",
+  "Premier League",
+  "Championship",
+  "League One",
+  "League Two",
 ];
 
 function SearchContent() {
@@ -52,6 +52,8 @@ function SearchContent() {
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>(searchParams.get("league")?.split(",").filter(Boolean) || []);
   const [ageRange, setAgeRange] = useState<[number, number]>([initialAgeMin, initialAgeMax]);
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "rating");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const buildFilterParams = useCallback(() => {
     const params = new URLSearchParams();
@@ -120,11 +122,27 @@ function SearchContent() {
     }
   };
 
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
+    if (loading || !hasMore) return;
     const nextPage = page + 1;
     setPage(nextPage);
     fetchPlayers(nextPage);
-  };
+  }, [fetchPlayers, hasMore, loading, page]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !loading && players.length > 0) {
+          handleLoadMore();
+        }
+      },
+      { rootMargin: "400px" }
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [handleLoadMore, hasMore, loading, players.length]);
 
   const toggleLeague = (league: string) => {
     setSelectedLeagues((prev) =>
@@ -202,16 +220,22 @@ function SearchContent() {
               </button>
             </div>
           )}
+          <button
+            onClick={() => setFiltersOpen(true)}
+            className="mt-3 rounded-full border px-4 py-2 text-xs font-semibold lg:hidden"
+            style={{ borderColor: "var(--color-border-strong)", color: "var(--color-text)" }}
+          >
+            Filters
+          </button>
         </div>
       </div>
 
       <div
-        className="grid gap-4 px-6"
-        style={{ gridTemplateColumns: "280px 1fr" }}
+        className="grid gap-4 px-6 lg:grid-cols-[280px_1fr]"
       >
         {/* Filter Sidebar */}
         <div
-          className="rounded-xl p-5 self-start sticky top-24"
+          className="hidden rounded-xl p-5 self-start sticky top-24 lg:block"
           style={{
             background: "var(--color-surface)",
             border: "1px solid var(--color-border)",
@@ -317,6 +341,94 @@ function SearchContent() {
           </div>
         </div>
 
+        {filtersOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <button
+              aria-label="Close filters"
+              onClick={() => setFiltersOpen(false)}
+              className="absolute inset-0 bg-black/40"
+            />
+            <div
+              className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-3xl border p-5 shadow-2xl"
+              style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--color-text)" }}>
+                  Filters
+                </h3>
+                <button
+                  onClick={() => setFiltersOpen(false)}
+                  className="rounded-full px-3 py-1 text-xs font-semibold"
+                  style={{ background: "var(--color-surface-2)", color: "var(--color-text)" }}
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-xs font-semibold mb-2 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
+                  Position
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {POSITION_OPTIONS.map((pos) => (
+                    <button
+                      key={pos.code}
+                      onClick={() => setSelectedPosition(selectedPosition === pos.code ? null : pos.code)}
+                      className="rounded-full px-3 py-1 text-xs font-medium border transition-colors"
+                      style={{
+                        background: selectedPosition === pos.code ? "var(--color-primary)" : "transparent",
+                        borderColor: selectedPosition === pos.code ? "var(--color-primary-dark)" : "var(--color-border)",
+                        color: selectedPosition === pos.code ? "var(--color-primary-text)" : "var(--color-text-muted)",
+                      }}
+                    >
+                      {pos.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {selectedPosition && DETAILED_POSITIONS[selectedPosition] && (
+                <div className="mb-6">
+                  <p className="text-xs font-semibold mb-2 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
+                    Detailed Position
+                  </p>
+                  <div className="space-y-1">
+                    {DETAILED_POSITIONS[selectedPosition].map((dp) => (
+                      <label key={dp} className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={selectedDetailedPositions.includes(dp)} onChange={() => toggleDetailedPosition(dp)} className="rounded" />
+                        <span className="text-xs" style={{ color: "var(--color-text)" }}>{dp}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="mb-6">
+                <p className="text-xs font-semibold mb-2 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
+                  Age Range
+                </p>
+                <div className="flex items-center gap-2 mb-1">
+                  <input type="number" min={16} max={40} value={ageRange[0]} onChange={(e) => setAgeRange([+e.target.value, ageRange[1]])} className="w-16 rounded-lg border px-2 py-1 text-xs text-center outline-none" style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border)", color: "var(--color-text)" }} />
+                  <span className="text-xs" style={{ color: "var(--color-text-dim)" }}>to</span>
+                  <input type="number" min={16} max={40} value={ageRange[1]} onChange={(e) => setAgeRange([ageRange[0], +e.target.value])} className="w-16 rounded-lg border px-2 py-1 text-xs text-center outline-none" style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border)", color: "var(--color-text)" }} />
+                </div>
+              </div>
+
+              <div className="mb-2">
+                <p className="text-xs font-semibold mb-2 uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
+                  League
+                </p>
+                {LEAGUE_OPTIONS.map((league) => (
+                  <label key={league} className="flex items-center gap-2 mb-1.5 cursor-pointer">
+                    <input type="checkbox" checked={selectedLeagues.includes(league)} onChange={() => toggleLeague(league)} className="rounded" />
+                    <span className="text-xs" style={{ color: "var(--color-text)" }}>{league}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Results */}
         <div>
           {query.trim() && players.length > 0 && (
@@ -378,19 +490,8 @@ function SearchContent() {
               </div>
 
               {hasMore && (
-                <div className="mt-8 text-center">
-                  <button
-                    onClick={handleLoadMore}
-                    disabled={loading}
-                    className="rounded-full px-6 py-2.5 text-sm font-medium border transition-colors"
-                    style={{
-                      borderColor: "var(--color-border-strong)",
-                      color: "var(--color-text)",
-                      background: loading ? "var(--color-surface-2)" : "var(--color-surface)",
-                    }}
-                  >
-                    {loading ? "Loading..." : "Load more ↓"}
-                  </button>
+                <div ref={loadMoreRef} className="mt-8 text-center text-sm" style={{ color: "var(--color-text-muted)" }}>
+                  {loading ? "Loading more players..." : "Scroll to load more"}
                 </div>
               )}
             </>

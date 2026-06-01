@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
 import { SearchAutocomplete } from "@/components/ui/SearchAutocomplete";
 import { UpdateMonitor } from "@/components/ui/UpdateMonitor";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import "./globals.css";
 
 const inter = Inter({
@@ -34,13 +35,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
         <header
           className="sticky top-0 z-50 border-b"
           style={{
             height: "64px",
-            background: "#FFFFFF",
+            background: "var(--color-surface)",
             borderColor: "var(--color-border)",
           }}
         >
@@ -48,7 +49,7 @@ export default function RootLayout({
             <Link
               href="/"
               className="text-xl font-bold flex-shrink-0"
-              style={{ color: "#111827" }}
+              style={{ color: "var(--color-text)" }}
             >
               ScoutVision
             </Link>
@@ -72,6 +73,7 @@ export default function RootLayout({
 
             <div className="hidden md:flex items-center gap-3 ml-2">
               <UpdateMonitor />
+              <ThemeToggle />
               <button
                 className="rounded-full h-8 w-8 flex items-center justify-center transition-colors hover:bg-black/5"
                 aria-label="User profile"
@@ -136,6 +138,9 @@ function MobileNav() {
             {link.label}
           </Link>
         ))}
+        <div className="mt-2 border-t pt-2" style={{ borderColor: "var(--color-border)" }}>
+          <ThemeToggle />
+        </div>
       </div>
     </details>
   );

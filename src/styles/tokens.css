@@ -84,3 +84,21 @@
     --color-primary: #D4A88A;
   }
 }
+
+:root.dark {
+  --color-bg: #111827;
+  --color-surface: #1F2937;
+  --color-surface-2: #374151;
+  --color-border: #374151;
+  --color-text: #F9FAFB;
+  --color-text-muted: #9CA3AF;
+  --color-primary: #D4A88A;
+}
+
+:root:not(.dark) {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+}

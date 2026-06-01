@@ -73,6 +73,7 @@ export function PlayerKPICell({
   subtitle,
   format = "number",
 }: PlayerKPICellProps) {
+  const isUnavailable = value === "—" || value === "-" || value === "";
   const numericValue = typeof value === "string" ? parseFloat(value) || 0 : value;
 
   return (
@@ -87,8 +88,9 @@ export function PlayerKPICell({
         <p
           className="mt-1 text-4xl font-black font-mono tabular-nums leading-none"
           style={{ color: "var(--color-text)" }}
+          title={isUnavailable ? "Not available for this season" : undefined}
         >
-          <AnimatedCounter target={numericValue} format={format} />
+          {isUnavailable ? "—" : <AnimatedCounter target={numericValue} format={format} />}
         </p>
       </div>
       <div className="flex items-center gap-2 mt-2">

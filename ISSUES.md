@@ -111,54 +111,35 @@
 
 ## 🟢 P2 — Nice to Have
 
-### Issue #7: Dark mode toggle
+### ✅ Issue #7: Dark mode toggle
 **DESIGN Ref:** Section 10 — Dark Mode
+**Status:** ✅ Fixed in `feat: add P2 usability enhancements`
 
-**Current:** Dark mode CSS exists in `tokens.css` via `prefers-color-scheme: dark`, but there is no manual toggle.
-
-**Expected:** Theme toggle button in navigation that switches between light/dark/system, persisted in localStorage.
-
-**Files to modify:**
-- `src/app/layout.tsx` — add theme toggle button
-- `src/styles/tokens.css` — add `.dark` class selector in addition to media query
-- `src/lib/theme-store.ts` — new Zustand store for theme preference
+**Implemented:** Manual theme toggle in desktop and mobile navigation with Zustand/localStorage persistence and `.dark` token support.
 
 ---
 
-### Issue #8: True infinite scroll on search results
+### ✅ Issue #8: True infinite scroll on search results
 **PRD Ref:** F-01 (Acceptance Criteria #4)
+**Status:** ✅ Fixed in `feat: add P2 usability enhancements`
 
-**Current:** "Load more ↓" button at bottom of results.
-
-**Expected:** Auto-load next page when user scrolls to bottom (intersection observer based).
-
-**Files to modify:**
-- `src/app/players/page.tsx` — replace button with IntersectionObserver trigger
+**Implemented:** Search results now auto-load additional pages with `IntersectionObserver`; the manual `Load more` button was removed.
 
 ---
 
-### Issue #9: Stat tooltips for unavailable / null data
+### ✅ Issue #9: Stat tooltips for unavailable / null data
 **DESIGN Ref:** Section 7.2 — Empty States / Stat Not Available
+**Status:** ✅ Fixed in `feat: add P2 usability enhancements`
 
-**Current:** Missing stats show "—" but without tooltip.
-
-**Expected:** Hovering over "—" shows tooltip: "Not available for this season" or "Data not recorded".
-
-**Files to modify:**
-- `src/components/player/PlayerStatsTable.tsx` — add tooltip on dash values
-- `src/components/player/PlayerKPICell.tsx` — add tooltip when value is 0/missing
+**Implemented:** Missing KPI/table stats render `—` with a native tooltip: `Not available for this season`.
 
 ---
 
-### Issue #10: Mobile responsive sidebar collapse on search page
+### ✅ Issue #10: Mobile responsive sidebar collapse on search page
 **DESIGN Ref:** Section 9 — Responsive Breakpoints
+**Status:** ✅ Fixed in `feat: add P2 usability enhancements`
 
-**Current:** Filter sidebar is `hidden lg:block` which completely hides it on mobile. No alternative filter UI.
-
-**Expected:** Mobile should show a floating "Filters" button that opens a bottom sheet or drawer with all filters.
-
-**Files to modify:**
-- `src/app/players/page.tsx` — add mobile filter drawer toggle
+**Implemented:** Mobile search now shows a `Filters` button that opens a bottom-sheet drawer with position, detailed position, age, and league filters.
 
 ---
 

@@ -268,11 +268,11 @@ export default function ScoutBuilderPage() {
                 style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border)", color: "var(--color-text)" }}
               >
                 <option value="">All Leagues</option>
-                <option value="Premier League">Premier League</option>
                 <option value="La Liga">La Liga</option>
-                <option value="Bundesliga">Bundesliga</option>
-                <option value="Serie A">Serie A</option>
-                <option value="Ligue 1">Ligue 1</option>
+                <option value="Premier League">Premier League</option>
+                <option value="Championship">Championship</option>
+                <option value="League One">League One</option>
+                <option value="League Two">League Two</option>
               </select>
               <select
                 value={season}

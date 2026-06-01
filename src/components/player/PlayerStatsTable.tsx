@@ -10,29 +10,23 @@ interface PlayerStatsTableProps {
 export function PlayerStatsTable({ statistics }: PlayerStatsTableProps) {
   const [activeTab, setActiveTab] = useState("attacking");
 
-  const relevantCategories = STAT_CATEGORIES.filter((cat) =>
-    cat.statIds.some((id) =>
-      statistics.some((s) => s.stat_type_id === id)
-    )
-  );
+  const relevantCategories = STAT_CATEGORIES;
 
   const activeCategory = STAT_CATEGORIES.find((c) => c.key === activeTab);
   const statIds = activeCategory?.statIds || [];
   const stats = statIds
     .map((id, index) => {
       const stat = statistics.find((s) => s.stat_type_id === id);
-      return stat
-        ? {
-            id: stat.stat_type_id,
-            label: STAT_LABELS[id] || `Stat ${id}`,
-            value: stat.value,
-            rank: index + 1,
-          }
-        : null;
+      return {
+        id,
+        label: STAT_LABELS[id] || `Stat ${id}`,
+        value: stat?.value ?? null,
+        rank: index + 1,
+      };
     })
-    .filter(Boolean) as { id: number; label: string; value: number; rank: number }[];
+    .filter(Boolean) as { id: number; label: string; value: number | null; rank: number }[];
 
-  const maxValue = Math.max(...stats.map((s) => s.value), 1);
+  const maxValue = Math.max(...stats.map((s) => s.value ?? 0), 1);
 
   return (
     <div>
@@ -75,8 +69,9 @@ export function PlayerStatsTable({ statistics }: PlayerStatsTableProps) {
             <span
               className="text-sm font-mono font-semibold tabular-nums text-right"
               style={{ color: "var(--color-text)" }}
+              title={stat.value === null ? "Not available for this season" : undefined}
             >
-              {stat.value}
+              {stat.value ?? "—"}
             </span>
             <span
               className="text-xs text-center"
@@ -94,7 +89,7 @@ export function PlayerStatsTable({ statistics }: PlayerStatsTableProps) {
                 <div
                   className="h-full rounded-full stat-bar-fill-animate"
                   style={{
-                    width: `${(stat.value / maxValue) * 100}%`,
+                    width: `${((stat.value ?? 0) / maxValue) * 100}%`,
                     backgroundColor: activeCategory?.colorVar
                       ? `var(${activeCategory.colorVar})`
                       : "var(--color-primary-dark)",
@@ -105,7 +100,7 @@ export function PlayerStatsTable({ statistics }: PlayerStatsTableProps) {
                 className="text-xs font-mono font-semibold min-w-[2.5rem] text-right"
                 style={{ color: "var(--color-text-muted)" }}
               >
-                {Math.round((stat.value / maxValue) * 100)}%
+                {stat.value === null ? "—" : `${Math.round((stat.value / maxValue) * 100)}%`}
               </span>
             </div>
           </div>
