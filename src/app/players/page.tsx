@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { PlayerCard } from "@/components/player/PlayerCard";
 import { SkeletonCell } from "@/components/ui/SkeletonCell";
+import { LEAGUE_OPTIONS } from "@/lib/seasons";
 
 const POSITION_OPTIONS = [
   { code: "goalkeeper", label: "GK" },
@@ -18,14 +19,6 @@ const DETAILED_POSITIONS: Record<string, string[]> = {
   defender: ["Right Back", "Left Back", "Centre Back", "Wing Back"],
   goalkeeper: ["Goalkeeper"],
 };
-
-const LEAGUE_OPTIONS = [
-  "La Liga",
-  "Premier League",
-  "Championship",
-  "League One",
-  "League Two",
-];
 
 function SearchContent() {
   const searchParams = useSearchParams();

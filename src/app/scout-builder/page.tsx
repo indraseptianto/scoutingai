@@ -6,6 +6,7 @@ import { BentoCell } from "@/components/bento/BentoCell";
 import { PlayerCard } from "@/components/player/PlayerCard";
 import { SkeletonCell } from "@/components/ui/SkeletonCell";
 import { useQueryStore, type QueryPresetValues } from "@/lib/query-store";
+import { LEAGUE_OPTIONS } from "@/lib/seasons";
 
 function getInitialQueryValues(): QueryPresetValues {
   if (typeof window === "undefined") {
@@ -275,11 +276,9 @@ export default function ScoutBuilderPage() {
                 style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border)", color: "var(--color-text)" }}
               >
                 <option value="">All Leagues</option>
-                <option value="La Liga">La Liga</option>
-                <option value="Premier League">Premier League</option>
-                <option value="Championship">Championship</option>
-                <option value="League One">League One</option>
-                <option value="League Two">League Two</option>
+                {LEAGUE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
               </select>
               <select
                 value={season}

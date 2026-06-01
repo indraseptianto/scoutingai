@@ -12,7 +12,8 @@ export async function GET(
   const { id } = await params;
   const { searchParams } = new URL(req.url);
   const seasonName = searchParams.get("season") || "";
-  const seasonId = getSeasonId(seasonName);
+  const leagueName = searchParams.get("league") || undefined;
+  const seasonId = getSeasonId(seasonName, leagueName);
 
   const url = new URL(`${SPORTMONKS_BASE}/players/${id}`);
   url.searchParams.set("api_token", API_TOKEN);

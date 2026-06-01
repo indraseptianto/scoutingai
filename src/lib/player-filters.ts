@@ -67,8 +67,12 @@ export function filterPlayers(players: RawPlayer[], filters: PlayerFilterParams)
     if (filters.leagues?.length) {
       const teams = Array.isArray(player.teams) ? player.teams : [];
       const leagueFilters = filters.leagues.map((value) => value.toLowerCase());
+      const leagueNames = Array.isArray(player._leagueNames) ? player._leagueNames.map((league) => String(league).toLowerCase()) : [];
       const teamText = teams.map((team) => JSON.stringify(team).toLowerCase()).join(" ");
-      if (!leagueFilters.some((league) => teamText.includes(league))) return false;
+      const hasLeague = leagueFilters.some((league) =>
+        leagueNames.some((name) => name.includes(league)) || teamText.includes(league)
+      );
+      if (!hasLeague) return false;
     }
 
     if (filters.nationality) {
