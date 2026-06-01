@@ -6,47 +6,45 @@
 
 ## 🔴 P0 — Critical / Must Have
 
-### Issue #1: Season selector is cosmetic only — does not fetch real data
+### ✅ Issue #1: Season selector is cosmetic only — does not fetch real data
 **PRD Ref:** F-02 (Acceptance Criteria #3), F-03 (Acceptance Criteria #4)
 **DESIGN Ref:** 4.3 Row 2 — Season Selector
+**Status:** ✅ Fixed in `feat: real season data fetch + shortlist tag system`
 
-**Current:** SeasonSelector component renders pill buttons (`2024/25`, `2023/24`, `2022/23`) but clicking them only updates local React state. No API call is made to fetch statistics for the selected season.
-
-**Expected:** Toggle season must call Sportmonks API with `&filters=playerStatisticSeasons:{season_id}` and re-render all stat components (KPI cells, radar chart, stats table) with the new season's data.
-
-**Files to modify:**
-- `src/app/players/[id]/page.tsx` — wire `selectedSeason` to actual data fetch
-- `src/components/ui/SeasonSelector.tsx` — pass `season_id` values, not just display labels
-- `src/lib/sportmonks-client.ts` — add season filter parameter
+**Files modified:**
+- `src/lib/seasons.ts` — added season name → Sportmonks season_id mapping
+- `src/app/api/players/[id]/route.ts` — added `season` query param with `filters=playerStatisticSeasons:{season_id}`
+- `src/app/players/[id]/page.tsx` — rewired `selectedSeason` to actual data fetch via `useCallback`
+- `src/components/ui/SeasonSelector.tsx` — added `disabled` prop + loading indicator
+- `src/components/ui/SkeletonCell.tsx` — added `4x2` size support
 
 **Acceptance Criteria:**
-- [ ] Selecting a different season re-fetches player statistics from Sportmonks
-- [ ] KPI values update with animation (counter resets to 0 and counts up)
-- [ ] Radar chart re-renders with new season data
-- [ ] Stats table switches to the selected season's category tabs
-- [ ] Loading skeleton appears while fetching new season data
-- [ ] Compare page season selector also applies globally to all compared players
+- [x] Selecting a different season re-fetches player statistics from Sportmonks
+- [x] KPI values update with animation (counter resets to 0 and counts up)
+- [x] Radar chart re-renders with new season data
+- [x] Stats table switches to the selected season's category tabs
+- [x] Loading skeleton appears while fetching new season data
+- [ ] Compare page season selector also applies globally to all compared players *(deferred to P1)*
 
 ---
 
-### Issue #2: Shortlist lacks tag system
+### ✅ Issue #2: Shortlist lacks tag system
 **PRD Ref:** F-04 (Acceptance Criteria #3)
 **DESIGN Ref:** 4.6 Shortlist Page
+**Status:** ✅ Fixed in `feat: real season data fetch + shortlist tag system`
 
-**Current:** Players can be added to shortlists, but there is no tagging system.
-
-**Expected:** Each player in a shortlist can be tagged with custom labels (e.g., "priority", "backup", "monitored"). Tags should be visible as colored badges in the shortlist grid view.
-
-**Files to modify:**
-- `src/lib/shortlist-store.ts` — add `tags: string[]` to `ShortlistItem`
-- `src/components/shortlist/ShortlistCard.tsx` — render tag badges on player avatars
-- `src/components/shortlist/ShortlistButton.tsx` — dropdown should allow tag selection
+**Files modified:**
+- `src/lib/shortlist-store.ts` — already had `tags: string[]` and `updatePlayerTags`
+- `src/components/shortlist/ShortlistButton.tsx` — added dropdown with preset tags (priority/backup/monitored) + custom input
+- `src/components/ui/TagBadge.tsx` — new reusable tag badge component
+- `src/components/player/PlayerHeroCard.tsx` — passes full player props to `ShortlistButton`
+- `src/app/shortlists/page.tsx` — renders `TagBadge` on each player with remove capability
 
 **Acceptance Criteria:**
-- [ ] Tag a player when adding to shortlist (dropdown with preset tags + custom input)
-- [ ] Tags display as small colored badges on player cards in shortlist view
-- [ ] Filter shortlist view by tag
-- [ ] Tags persist in localStorage
+- [x] Tag a player when adding to shortlist (dropdown with preset tags + custom input)
+- [x] Tags display as small colored badges on player cards in shortlist view
+- [ ] Filter shortlist view by tag *(deferred to P1 — search/filter infrastructure)*
+- [x] Tags persist in localStorage
 
 ---
 
