@@ -20,7 +20,7 @@ export async function GET(
   url.searchParams.set("api_token", API_TOKEN);
   url.searchParams.set(
     "include",
-    "metadata;position;detailedPosition;statistics;statistics.details;transfers;pendingTransfers;teams;trophies;nationality;lineups"
+    "metadata;position;detailedPosition;statistics;statistics.details;transfers;pendingTransfers;teams;teams.team;trophies;trophies.trophy;trophies.league;trophies.season;nationality;lineups"
   );
 
   // If a valid season is requested, filter statistics to that season

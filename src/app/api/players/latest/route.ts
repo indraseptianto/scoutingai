@@ -7,7 +7,7 @@ const API_TOKEN = process.env.SPORTMONKS_API_TOKEN || process.env.NEXT_PUBLIC_SP
 export async function GET() {
   const url = new URL(`${SPORTMONKS_BASE}/players/latest`);
   url.searchParams.set("api_token", API_TOKEN);
-  url.searchParams.set("include", "position;nationality;teams");
+  url.searchParams.set("include", "position;nationality;teams;teams.team");
 
   const res = await fetch(url.toString(), { next: { revalidate: 7200 } });
   if (!res.ok) {

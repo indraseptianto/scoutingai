@@ -10,7 +10,7 @@ const API_TOKEN = process.env.SPORTMONKS_API_TOKEN || process.env.NEXT_PUBLIC_SP
 async function fetchPlayerDetail(id: number, season?: string, league?: string) {
   const url = new URL(`${SPORTMONKS_BASE}/players/${id}`);
   url.searchParams.set("api_token", API_TOKEN);
-  url.searchParams.set("include", "position;detailedPosition;nationality;teams;statistics;statistics.details");
+  url.searchParams.set("include", "position;detailedPosition;nationality;teams;teams.team;statistics;statistics.details");
   const seasonId = getSeasonId(season || "", league);
   if (seasonId) url.searchParams.set("filters", `playerStatisticSeasons:${seasonId}`);
   const res = await fetch(url.toString(), { next: { revalidate: 1800 } });
@@ -62,7 +62,7 @@ export async function GET(req: Request) {
   const page = searchParams.get("page") || "1";
 
   return sportmonksFetch(
-    `/players/search/${encodeURIComponent(query)}?include=position;detailedPosition;nationality;teams;statistics;statistics.details&page=${page}`,
+    `/players/search/${encodeURIComponent(query)}?include=position;detailedPosition;nationality;teams;teams.team;statistics;statistics.details&page=${page}`,
     searchParams
   );
 }
