@@ -37,5 +37,29 @@ export async function GET(
   }
   const data = await res.json();
   data.data = await enrichPlayerTeamNames(SPORTMONKS_BASE, API_TOKEN, normalizePlayer(data.data || data));
+  data.scoutvision = {
+    selectedSeason: seasonName || null,
+    seasonId: seasonId || null,
+    statsFallback: false,
+  };
+
+  if (seasonId && Array.isArray(data.data.statistics) && data.data.statistics.length === 0) {
+    const fallbackUrl = new URL(`${SPORTMONKS_BASE}/players/${id}`);
+    fallbackUrl.searchParams.set("api_token", API_TOKEN);
+    fallbackUrl.searchParams.set(
+      "include",
+      "metadata;position;detailedPosition;statistics;statistics.details;transfers;pendingTransfers;teams;teams.team;trophies;trophies.trophy;trophies.league;trophies.season;nationality;lineups"
+    );
+    const fallbackRes = await fetch(fallbackUrl.toString(), { next: { revalidate: 1800 } });
+    if (fallbackRes.ok) {
+      const fallbackData = await fallbackRes.json();
+      const fallbackPlayer = await enrichPlayerTeamNames(SPORTMONKS_BASE, API_TOKEN, normalizePlayer(fallbackData.data || fallbackData));
+      if (Array.isArray(fallbackPlayer.statistics) && fallbackPlayer.statistics.length > 0) {
+        data.data = fallbackPlayer;
+        data.scoutvision.statsFallback = true;
+        data.scoutvision.fallbackReason = "Selected season returned no statistics; showing latest available player statistics.";
+      }
+    }
+  }
   return NextResponse.json(data);
 }

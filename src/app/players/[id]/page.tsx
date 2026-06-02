@@ -40,6 +40,7 @@ export default function PlayerProfilePage() {
   const [seasonLoading, setSeasonLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedSeason, setSelectedSeason] = useState(SEASON_NAMES[0]);
+  const [dataStatus, setDataStatus] = useState<{ statsFallback?: boolean; fallbackReason?: string } | null>(null);
 
   const fetchPlayer = useCallback(
     async (season: string, isSeasonChange = false) => {
@@ -52,6 +53,7 @@ export default function PlayerProfilePage() {
         if (!res.ok) throw new Error("Failed to fetch player");
         const data = await res.json();
         setPlayer((data.data || data) as RawPlayerData);
+        setDataStatus(data.scoutvision || null);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load player data");
       }
@@ -68,7 +70,10 @@ export default function PlayerProfilePage() {
         const res = await fetch(`/api/players/${playerId}?season=${encodeURIComponent(selectedSeason)}`);
         if (!res.ok) throw new Error("Failed to fetch player");
         const data = await res.json();
-        if (!cancelled) setPlayer((data.data || data) as RawPlayerData);
+        if (!cancelled) {
+          setPlayer((data.data || data) as RawPlayerData);
+          setDataStatus(data.scoutvision || null);
+        }
       } catch (err: unknown) {
         if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load player data");
       }
@@ -179,6 +184,12 @@ export default function PlayerProfilePage() {
               visible={statMap.length === 0}
               message="Sportmonks returned no player statistics for this season."
               details="This can happen when historical data is incomplete, the selected season ID does not match the player's league, or your API subscription does not include the requested stats."
+            />
+            <DataQualityNotice
+              visible={!!dataStatus?.statsFallback}
+              title="Showing latest available stats"
+              message={dataStatus?.fallbackReason || "Selected season returned no statistics, so latest available statistics are shown."}
+              details="Season-specific data can vary by league and subscription coverage."
             />
           </div>
         </BentoCell>

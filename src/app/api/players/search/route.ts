@@ -34,6 +34,15 @@ async function enrichPlayersWithStats(players: Record<string, unknown>[], filter
   );
 }
 
+async function processPlayers(players: Record<string, unknown>[], filters: URLSearchParams) {
+  let processed = players;
+  if (filters.get("league")) {
+    processed = await enrichPlayersWithLeagueNames(SPORTMONKS_BASE, API_TOKEN, processed);
+  }
+  processed = await enrichPlayersWithStats(processed, filters);
+  return filterPlayers(processed, parseFilterParams(filters));
+}
+
 async function sportmonksFetch(endpoint: string, filters?: URLSearchParams) {
   const url = new URL(`${SPORTMONKS_BASE}${endpoint}`);
   url.searchParams.set("api_token", API_TOKEN);
@@ -44,14 +53,32 @@ async function sportmonksFetch(endpoint: string, filters?: URLSearchParams) {
     return NextResponse.json({ error: errorText }, { status: res.status });
   }
   const data = await res.json();
-  data.data = normalizePlayers(data.data || []);
+  const normalized = normalizePlayers(data.data || []);
   if (filters) {
-    if (filters.get("league")) {
-      data.data = await enrichPlayersWithLeagueNames(SPORTMONKS_BASE, API_TOKEN, data.data);
+    const currentPage = Number(filters.get("page") || "1");
+    let matched = await processPlayers(normalized, filters);
+    let pagesScanned = 1;
+
+    if (hasStatThresholdParams(filters) && data.pagination?.has_more && matched.length < 20) {
+      for (let page = currentPage + 1; page <= currentPage + 4 && matched.length < 20; page++) {
+        const nextUrl = new URL(url.toString());
+        nextUrl.searchParams.set("page", String(page));
+        const nextRes = await fetch(nextUrl.toString(), { next: { revalidate: 1800 } });
+        if (!nextRes.ok) break;
+        const nextData = await nextRes.json();
+        pagesScanned++;
+        matched = [...matched, ...(await processPlayers(normalizePlayers(nextData.data || []), filters))];
+        if (!nextData.pagination?.has_more) break;
+      }
     }
-    data.data = await enrichPlayersWithStats(data.data, filters);
-    const parsedFilters = parseFilterParams(filters);
-    data.data = filterPlayers(data.data || [], parsedFilters);
+    data.data = matched;
+    data.scoutvision = {
+      ...(data.scoutvision || {}),
+      pagesScanned,
+      partialScan: Boolean(data.pagination?.has_more && pagesScanned >= 5),
+    };
+  } else {
+    data.data = normalized;
   }
   return NextResponse.json(data);
 }

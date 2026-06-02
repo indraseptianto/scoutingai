@@ -73,6 +73,7 @@ export default function ScoutBuilderPage() {
   const [resultCount, setResultCount] = useState(0);
   const [presetName, setPresetName] = useState("");
   const [dataQuality, setDataQuality] = useState("");
+  const [scanMeta, setScanMeta] = useState<{ pagesScanned?: number; partialScan?: boolean } | null>(null);
 
   const getCurrentValues = (): QueryPresetValues => ({
     position,
@@ -137,6 +138,7 @@ export default function ScoutBuilderPage() {
       const players = data.data || [];
       setResults(players.slice(0, 6));
       setResultCount(players.length);
+      setScanMeta(data.scoutvision || null);
       setDataQuality(
         players.length === 0
           ? "No players matched this query. Sportmonks coverage can vary by league, season, and statistic availability."
@@ -177,6 +179,7 @@ export default function ScoutBuilderPage() {
     setResults([]);
     setResultCount(0);
     setDataQuality("");
+    setScanMeta(null);
   };
 
   return (
@@ -434,6 +437,12 @@ export default function ScoutBuilderPage() {
               visible={!!dataQuality}
               message={dataQuality}
               details="Try lowering thresholds, selecting All Leagues, or choosing a season covered by your Sportmonks plan."
+            />
+            <DataQualityNotice
+              visible={!!scanMeta?.partialScan}
+              title="Partial scouting scan"
+              message={`Scanned ${scanMeta?.pagesScanned || 1} Sportmonks pages for stat-threshold matches.`}
+              details="More pages exist beyond the scan limit, so the result set may not be exhaustive."
             />
           </div>
 

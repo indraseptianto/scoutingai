@@ -34,6 +34,15 @@ async function enrichPlayersWithStats(players: Record<string, unknown>[], filter
   );
 }
 
+async function processPlayers(players: Record<string, unknown>[], filters: URLSearchParams) {
+  let processed = players;
+  if (filters.get("league")) {
+    processed = await enrichPlayersWithLeagueNames(SPORTMONKS_BASE, API_TOKEN, processed);
+  }
+  processed = await enrichPlayersWithStats(processed, filters);
+  return filterPlayers(processed, parseFilterParams(filters));
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const page = searchParams.get("page") || "1";
@@ -51,11 +60,28 @@ export async function GET(req: Request) {
     );
   }
   const data = await res.json();
-  data.data = normalizePlayers(data.data || []);
-  if (searchParams.get("league")) {
-    data.data = await enrichPlayersWithLeagueNames(SPORTMONKS_BASE, API_TOKEN, data.data);
+  let matched = await processPlayers(normalizePlayers(data.data || []), searchParams);
+  let pagesScanned = 1;
+  const currentPage = Number(page);
+
+  if (hasStatThresholdParams(searchParams) && data.pagination?.has_more && matched.length < 20) {
+    for (let nextPage = currentPage + 1; nextPage <= currentPage + 4 && matched.length < 20; nextPage++) {
+      const nextUrl = new URL(url.toString());
+      nextUrl.searchParams.set("page", String(nextPage));
+      const nextRes = await fetch(nextUrl.toString(), { next: { revalidate: 600 } });
+      if (!nextRes.ok) break;
+      const nextData = await nextRes.json();
+      pagesScanned++;
+      matched = [...matched, ...(await processPlayers(normalizePlayers(nextData.data || []), searchParams))];
+      if (!nextData.pagination?.has_more) break;
+    }
   }
-  data.data = await enrichPlayersWithStats(data.data, searchParams);
-  data.data = filterPlayers(data.data || [], parseFilterParams(searchParams));
+
+  data.data = matched;
+  data.scoutvision = {
+    ...(data.scoutvision || {}),
+    pagesScanned,
+    partialScan: Boolean(data.pagination?.has_more && pagesScanned >= 5),
+  };
   return NextResponse.json(data);
 }

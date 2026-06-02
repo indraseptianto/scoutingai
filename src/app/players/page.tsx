@@ -48,6 +48,7 @@ function SearchContent() {
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "rating");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [dataQuality, setDataQuality] = useState("");
+  const [scanMeta, setScanMeta] = useState<{ pagesScanned?: number; partialScan?: boolean } | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const hasMountedRef = useRef(false);
 
@@ -78,6 +79,7 @@ function SearchContent() {
         const res = await fetch(`/api/players/search?${params.toString()}`);
         const data = await res.json();
         const newPlayers = data.data || [];
+        setScanMeta(data.scoutvision || null);
         const hasStatFilters = ["goals_min", "assists_min", "pass_min", "rating_min", "apps_min", "tackles_min"].some((key) => buildFilterParams().has(key));
         setDataQuality(
           hasStatFilters && newPlayers.length === 0
@@ -107,6 +109,7 @@ function SearchContent() {
         if (!cancelled) {
           setPlayers(data.data || []);
           setHasMore((data.data || []).length === 20);
+          setScanMeta(data.scoutvision || null);
           setDataQuality((data.data || []).length === 0 ? "Sportmonks returned no players for the current query/filter combination." : "");
         }
       } catch (err) {
@@ -497,6 +500,12 @@ function SearchContent() {
               visible={!!dataQuality}
               message={dataQuality}
               details="Try a broader filter, a different season, or verify that your Sportmonks subscription includes the requested statistics."
+            />
+            <DataQualityNotice
+              visible={!!scanMeta?.partialScan}
+              title="Partial scouting scan"
+              message={`Scanned ${scanMeta?.pagesScanned || 1} Sportmonks result pages for stat matches.`}
+              details="More pages exist beyond the scan limit, so broaden filters or load additional pages for exhaustive discovery."
             />
           </div>
 
