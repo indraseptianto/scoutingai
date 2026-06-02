@@ -41,6 +41,9 @@ export async function GET(
     selectedSeason: seasonName || null,
     seasonId: seasonId || null,
     statsFallback: false,
+    statsSource: seasonId ? "selected-season" : "latest-available",
+    statsCount: Array.isArray(data.data.statistics) ? data.data.statistics.length : 0,
+    subscriptionPlan: data.subscription?.[0]?.plans?.[0]?.plan || null,
   };
 
   if (seasonId && Array.isArray(data.data.statistics) && data.data.statistics.length === 0) {
@@ -57,9 +60,12 @@ export async function GET(
       if (Array.isArray(fallbackPlayer.statistics) && fallbackPlayer.statistics.length > 0) {
         data.data = fallbackPlayer;
         data.scoutvision.statsFallback = true;
+        data.scoutvision.statsSource = "latest-available";
+        data.scoutvision.statsCount = fallbackPlayer.statistics.length;
         data.scoutvision.fallbackReason = "Selected season returned no statistics; showing latest available player statistics.";
       }
     }
   }
+  data.scoutvision.hasStatistics = Array.isArray(data.data.statistics) && data.data.statistics.length > 0;
   return NextResponse.json(data);
 }

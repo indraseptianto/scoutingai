@@ -40,7 +40,14 @@ export default function PlayerProfilePage() {
   const [seasonLoading, setSeasonLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedSeason, setSelectedSeason] = useState(SEASON_NAMES[0]);
-  const [dataStatus, setDataStatus] = useState<{ statsFallback?: boolean; fallbackReason?: string } | null>(null);
+  const [dataStatus, setDataStatus] = useState<{
+    statsFallback?: boolean;
+    fallbackReason?: string;
+    statsSource?: string;
+    statsCount?: number;
+    subscriptionPlan?: string | null;
+    hasStatistics?: boolean;
+  } | null>(null);
 
   const fetchPlayer = useCallback(
     async (season: string, isSeasonChange = false) => {
@@ -88,6 +95,10 @@ export default function PlayerProfilePage() {
     if (season === selectedSeason) return;
     setSelectedSeason(season);
     fetchPlayer(season, true);
+  };
+
+  const handleShowLatestStats = () => {
+    fetchPlayer("", true);
   };
 
   if (error) {
@@ -180,11 +191,35 @@ export default function PlayerProfilePage() {
               onChange={handleSeasonChange}
               disabled={seasonLoading}
             />
+            <div className="grid gap-2 md:grid-cols-3">
+              <div className="rounded-lg border px-3 py-2" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+                <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Stats loaded</p>
+                <p className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>{dataStatus?.statsCount ?? statMap.length}</p>
+              </div>
+              <div className="rounded-lg border px-3 py-2" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+                <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Stats source</p>
+                <p className="text-sm font-semibold capitalize" style={{ color: "var(--color-text)" }}>{(dataStatus?.statsSource || "unknown").replaceAll("-", " ")}</p>
+              </div>
+              <div className="rounded-lg border px-3 py-2" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+                <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>API plan</p>
+                <p className="truncate text-sm font-semibold" style={{ color: "var(--color-text)" }}>{dataStatus?.subscriptionPlan || "Unknown"}</p>
+              </div>
+            </div>
             <DataQualityNotice
               visible={statMap.length === 0}
               message="Sportmonks returned no player statistics for this season."
               details="This can happen when historical data is incomplete, the selected season ID does not match the player's league, or your API subscription does not include the requested stats."
             />
+            {statMap.length === 0 && (
+              <button
+                onClick={handleShowLatestStats}
+                disabled={seasonLoading}
+                className="rounded-full px-4 py-2 text-xs font-semibold disabled:opacity-50"
+                style={{ background: "var(--color-primary-dark)", color: "white" }}
+              >
+                Show latest available stats
+              </button>
+            )}
             <DataQualityNotice
               visible={!!dataStatus?.statsFallback}
               title="Showing latest available stats"
